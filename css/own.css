@@ -1,0 +1,79 @@
+.text-blue {
+    color: var(--blue) !important;
+}
+
+.text-indigo {
+    color: var(--indigo) !important;
+}
+
+.text-purple {
+    color: var(--purple) !important;
+}
+
+.text-pink {
+    color: var(--pink) !important;
+}
+
+.text-red {
+    color: var(--red) !important;
+}
+
+.text-orange {
+    color: var(--orange) !important;
+}
+
+.text-yellow {
+    color: var(--yellow) !important;
+}
+
+.text-green {
+    color: var(--green) !important;
+}
+
+.text-teal {
+    color: var(--teal) !important;
+}
+
+.text-cyan {
+    color: var(--cyan) !important;
+}
+
+.border-left-blue {
+    border-left: 0.25rem solid var(--blue) !important;
+}
+
+.border-left-indigo {
+    border-left: 0.25rem solid var(--indigo) !important;
+}
+
+.border-left-purple {
+    border-left: 0.25rem solid var(--purple) !important;
+}
+
+.border-left-pink {
+    border-left: 0.25rem solid var(--pink) !important;
+}
+
+.border-left-red {
+    border-left: 0.25rem solid var(--red) !important;
+}
+
+.border-left-orange {
+    border-left: 0.25rem solid var(--orange) !important;
+}
+
+.border-left-yellow {
+    border-left: 0.25rem solid var(--yellow) !important;
+}
+
+.border-left-green {
+    border-left: 0.25rem solid var(--green) !important;
+}
+
+.border-left-teal {
+    border-left: 0.25rem solid var(--teal) !important;
+}
+
+.border-left-cyan {
+    border-left: 0.25rem solid var(--cyan) !important;
+}  

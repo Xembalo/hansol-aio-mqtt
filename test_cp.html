@@ -1,0 +1,41 @@
+<!DOCTYPE html><html lang='en' class=''>
+<head><script src='https://static.codepen.io/assets/editor/live/console_runner-1df7d3399bdc1f40995a35209755dcfd8c7547da127f6469fd81e5fba982f6af.js'></script><script src='https://static.codepen.io/assets/editor/live/css_reload-5619dc0905a68b2e6298901de54f73cefe4e079f65a75406858d92924b4938bf.js'></script><meta charset='UTF-8'><meta name="robots" content="noindex"><link rel="shortcut icon" type="image/x-icon" href="https://static.codepen.io/assets/favicon/favicon-aec34940fbc1a6e787974dcd360f2c6b63348d4b1f4e06c77743096d55480f33.ico" /><link rel="mask-icon" type="" href="https://static.codepen.io/assets/favicon/logo-pin-8f3771b1072e3c38bd662872f6b673a722f4b3ca2421637d5596661b4e2132cc.svg" color="#111" /><link rel="canonical" href="https://codepen.io/timbergus/pen/EaLRWO?editors=1010" />
+<link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/meyer-reset/2.0/reset.min.css'>
+<style class="cp-pen-styles"></style>
+</head>
+
+<body>
+<canvas id="myChart" width="400" height="400"></canvas>
+
+<script src='vendor/chart.js/Chart.bundle.min.js'></script>
+<script>
+          
+
+var ctx = document.getElementById("myChart").getContext("2d");
+var myLineChart = new Chart(ctx, {
+  type: 'line',
+  data: {
+    labels: ["2019-06-30", "2019-07-01", "2019-07-30"],
+    datasets: [{
+      label: "Temperatur",
+      lineTension: 0.3,
+      backgroundColor: "rgba(78, 115, 223, 0.05)",
+      borderColor: "rgba(78, 115, 223, 1)",
+      data: [31, 34, 36.6] }] },
+
+
+  options: {
+    scales: {
+      xAxes: [{
+        type: "time",
+        time: {
+          format: 'YYYY-MM-DD',
+          unit: 'day' 
+        } 
+      }] 
+    } 
+  } 
+});
+
+        </script>
+</body></html>
