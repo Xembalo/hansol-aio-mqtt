@@ -1,0 +1,10 @@
+<?php
+    //mysql/mariadb credentials
+    //replace with correct values and rename this file to config.inc.php in same folder
+    $host = "127.0.0.1";
+    $port = "3307";
+    $dbname = "my_database";
+    $user = "someone";
+    $password = "top_secret";    
+?>
+
