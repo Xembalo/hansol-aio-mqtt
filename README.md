@@ -1,65 +1,56 @@
-# [Start Bootstrap - SB Admin 2](https://startbootstrap.com/template-overviews/sb-admin-2/)
+# Hansol AIO Dashboard
 
-[SB Admin 2](https://startbootstrap.com/template-overviews/sb-admin-2/) is an open source admin dashboard theme for [Bootstrap](http://getbootstrap.com/) created by [Start Bootstrap](http://startbootstrap.com/).
+Hansol AIO Dashboard is an open source dashboard for displaying and monitoring logged data from Hansol AIO Photovoltaik devices. 
 
-For the legacy Bootstrap 3 version of this theme, you can view the [last stable release](https://github.com/BlackrockDigital/startbootstrap-sb-admin-2/releases/tag/v3.3.7%2B1) of SB Admin 2 for Bootstrap 3.
+It's based on [SB Admin 2](https://startbootstrap.com/template-overviews/sb-admin-2/), an open source admin dashboard theme for [Bootstrap](http://getbootstrap.com/) created by [Start Bootstrap](http://startbootstrap.com/).
 
 ## Preview
 
 [![SB Admin 2 Preview](https://startbootstrap.com/assets/img/screenshots/themes/sb-admin-2.png)](https://blackrockdigital.github.io/startbootstrap-sb-admin-2/)
 
-**[Launch Live Preview](https://blackrockdigital.github.io/startbootstrap-sb-admin-2/)**
-
 ## Status
 
 [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/BlackrockDigital/startbootstrap-sb-admin-2/master/LICENSE)
-[![npm version](https://img.shields.io/npm/v/startbootstrap-sb-admin-2.svg)](https://www.npmjs.com/package/startbootstrap-sb-admin-2)
-[![Build Status](https://travis-ci.org/BlackrockDigital/startbootstrap-sb-admin-2.svg?branch=master)](https://travis-ci.org/BlackrockDigital/startbootstrap-sb-admin-2)
-[![dependencies Status](https://david-dm.org/BlackrockDigital/startbootstrap-sb-admin-2/status.svg)](https://david-dm.org/BlackrockDigital/startbootstrap-sb-admin-2)
-[![devDependencies Status](https://david-dm.org/BlackrockDigital/startbootstrap-sb-admin-2/dev-status.svg)](https://david-dm.org/BlackrockDigital/startbootstrap-sb-admin-2?type=dev)
 
-## Download and Installation
+## Download
 
 To begin using this template, choose one of the following options to get started:
 
--   [Download the latest release on Start Bootstrap](https://startbootstrap.com/template-overviews/sb-admin-2/)
--   Install via npm: `npm i startbootstrap-sb-admin-2`
--   Clone the repo: `git clone https://github.com/BlackrockDigital/startbootstrap-sb-admin-2.git`
--   [Fork, Clone, or Download on GitHub](https://github.com/BlackrockDigital/startbootstrap-sb-admin-2)
+-   Clone the repo: `git clone https://github.com/Xembalo/hansol-aio-dashboard.git`
+-   [Fork, Clone, or Download on GitHub](https://github.com/Xembalo/hansol-aio-dashboard)
+
+## Preparation and Installation
+
+The Hansol AIO is accessible within your local network and 
+The Hansol AIO device is accessible via the local network and provides diagnostic data. These can be read out cyclically via a bash script.
+In this project there is an example script in the folder `additional/collect_data` which should be executed every minute in a Linux environment (Raspberry Pi, Synology NAS or similar) via crontab. 
+The results are written into a MySQL/MariaDB with a time stamp and can then be read or further processed.
+
+The script to create the database tables is located in the folder `additional/database`
 
 ## Usage
 
-After installation, run `npm install` and then run `npm start` which will open up a preview of the template in your default browser, watch for changes to core template files, and live reload the browser when changes are saved. You can view the `gulpfile.js` to see which tasks are included with the dev environment.
+Download or clone the repo to a PHP and MySQL/MariaDB enabled webserver of your choice. For database access PDO is used. You need to modify the file `includes\config.inc.php.sample` and rename it to `includes\config.inc.php`. 
+
+Thats it.
 
 ### Gulp Tasks
 
--   `gulp` the default task that builds everything
--   `gulp watch` browserSync opens the project in your default browser and live reloads when changes are made
--   `gulp css` compiles SCSS files into CSS and minifies the compiled CSS
--   `gulp js` minifies the themes JS file
--   `gulp vendor` copies dependencies from node_modules to the vendor directory
-
-You must have npm installed globally in order to use this build environment. This theme was built using node v11.6.0 and the Gulp CLI v2.0.1. If Gulp is not running properly after running `npm install`, you may need to update node and/or the Gulp CLI locally.
-
 ## Bugs and Issues
 
-Have a bug or an issue with this template? [Open a new issue](https://github.com/BlackrockDigital/startbootstrap-sb-admin-2/issues) here on GitHub or leave a comment on the [template overview page at Start Bootstrap](http://startbootstrap.com/template-overviews/sb-admin-2/).
+Have a bug or an issue or an idea for further statistics? [Open a new issue](https://github.com/Xembalo/hansol-aio-dashboard/issues) here on GitHub.
 
 ## About
 
-Start Bootstrap is an open source library of free Bootstrap templates and themes. All of the free templates and themes on Start Bootstrap are released under the MIT license, which means you can use them for any purpose, even for commercial projects.
+This project was created by and is maintained by **Sebastian Wienecke**.
 
--   <https://startbootstrap.com>
--   <https://twitter.com/SBootstrap>
+-   <https://twitter.com/xembalo>
+-   <https://github.com/Xembalo>
 
-Start Bootstrap was created by and is maintained by **[David Miller](http://davidmiller.io/)**.
+It is based on [SB Admin 2](https://startbootstrap.com/template-overviews/sb-admin-2/) creaded by [David Miller](https://github.com/davidtmiller) and furthermore it is based on the [Bootstrap](http://getbootstrap.com/) framework created by [Mark Otto](https://twitter.com/mdo) and [Jacob Thorton](https://twitter.com/fat) and 
 
--   <http://davidmiller.io>
--   <https://twitter.com/davidmillerskt>
--   <https://github.com/davidtmiller>
-
-Start Bootstrap is based on the [Bootstrap](http://getbootstrap.com/) framework created by [Mark Otto](https://twitter.com/mdo) and [Jacob Thorton](https://twitter.com/fat).
+Special thanks to the users from [Photovoltaikforum.com](www.photovoltaikforum.com) in particular but not exclusively to user "fsg4u" for his [bash skript](https://www.photovoltaikforum.com/thread/102631-hat-schon-jemand-erfahrung-mit-dem-samsung-sdi-ess/?postID=1758839#post1758839) to collect the data. 
 
 ## Copyright and License
 
-Copyright 2013-2019 Blackrock Digital LLC. Code released under the [MIT](https://github.com/BlackrockDigital/startbootstrap-resume/blob/gh-pages/LICENSE) license.
+Copyright 2019 Sebastian Wienecke. Code released under the [MIT](https://github.com/Xembalo/hansol-aoi-dashboard/LICENSE) license.
