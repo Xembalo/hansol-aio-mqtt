@@ -32,9 +32,7 @@ The script to create the database tables is located in the folder `additional/da
 
 Download or clone the repo to a PHP and MySQL/MariaDB enabled webserver of your choice. For database access PDO is used. You need to modify the file `includes\config.inc.php.sample` and rename it to `includes\config.inc.php`. 
 
-Thats it.
-
-### Gulp Tasks
+Navigate your browser of choice to your project, thats it!
 
 ## Bugs and Issues
 
@@ -53,4 +51,8 @@ Special thanks to the users from [Photovoltaikforum.com](www.photovoltaikforum.c
 
 ## Copyright and License
 
+All named trademarks and productnames are the property of their respective owners.
+
 Copyright 2019 Sebastian Wienecke. Code released under the [MIT](https://github.com/Xembalo/hansol-aoi-dashboard/LICENSE) license.
+
+
