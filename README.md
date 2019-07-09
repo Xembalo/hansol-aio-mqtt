@@ -1,6 +1,6 @@
 # Hansol AIO Dashboard
 
-Hansol AIO Dashboard is an open source dashboard for displaying and monitoring logged data from Hansol AIO Photovoltaik devices. 
+Hansol AIO Dashboard is an open source dashboard for displaying and monitoring logged data from [Hansol AIO Photovoltaik devices](https://myess.hansoltechnics.com/prod/prod.do#1). 
 
 It's based on [SB Admin 2](https://startbootstrap.com/template-overviews/sb-admin-2/), an open source admin dashboard theme for [Bootstrap](http://getbootstrap.com/) created by [Start Bootstrap](http://startbootstrap.com/).
 
