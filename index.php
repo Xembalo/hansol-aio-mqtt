@@ -176,267 +176,36 @@
             </div>
           </div>
 
-          <!-- Content Row -->
-
           <div class="row">
-
-            <!-- Area Chart -->
-            <div class="col-xl-8 col-lg-7">
+            <div class="col-xl-12 col-lg-7">
               <div class="card shadow mb-4">
-                <!-- Card Header - Dropdown -->
-                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
-                  <h6 class="m-0 font-weight-bold text-primary">Temperatur</h6>
-                  <div class="dropdown no-arrow">
-                    <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                      <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
-                    </a>
-                    <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in" aria-labelledby="dropdownMenuLink">
-                      <div class="dropdown-header">Dropdown Header:</div>
-                      <a class="dropdown-item" href="#">Action</a>
-                      <a class="dropdown-item" href="#">Another action</a>
-                      <div class="dropdown-divider"></div>
-                      <a class="dropdown-item" href="#">Something else here</a>
-                    </div>
-                  </div>
-                </div>
-                <!-- Card Body -->
-                <div class="card-body">
-                  <div class="chart-area">
-                    <canvas id="myAreaChart"></canvas>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Pie Chart -->
-            <div class="col-xl-4 col-lg-5">
-              <div class="card shadow mb-4">
-                <!-- Card Header - Dropdown -->
-                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
-                  <h6 class="m-0 font-weight-bold text-primary">Revenue Sources</h6>
-                  <div class="dropdown no-arrow">
-                    <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                      <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
-                    </a>
-                    <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in" aria-labelledby="dropdownMenuLink">
-                      <div class="dropdown-header">Dropdown Header:</div>
-                      <a class="dropdown-item" href="#">Action</a>
-                      <a class="dropdown-item" href="#">Another action</a>
-                      <div class="dropdown-divider"></div>
-                      <a class="dropdown-item" href="#">Something else here</a>
-                    </div>
-                  </div>
-                </div>
-                <!-- Card Body -->
-                <div class="card-body">
-                  <div class="chart-pie pt-4 pb-2">
-                    <canvas id="myBatLast"></canvas>
-                  </div>
-                  <div class="mt-4 text-center small">
-                    <span class="mr-2">
-                      <i class="fas fa-circle text-primary"></i> Direct
-                    </span>
-                    <span class="mr-2">
-                      <i class="fas fa-circle text-success"></i> Social
-                    </span>
-                    <span class="mr-2">
-                      <i class="fas fa-circle text-info"></i> Referral
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-
-          <div class="row">
-
-            <!-- Area Chart -->
-            <div class="col-xl-8 col-lg-7">
-              <div class="card shadow mb-4">
-                <!-- Card Header - Dropdown -->
-                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                <div class="card-header py-3">
                   <h6 class="m-0 font-weight-bold text-primary">Stromflüsse und Batterie</h6>
-                  <div class="dropdown no-arrow">
-                    <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                      <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
-                    </a>
-                    <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in" aria-labelledby="dropdownMenuLink">
-                      <div class="dropdown-header">Dropdown Header:</div>
-                      <a class="dropdown-item" href="#">Action</a>
-                      <a class="dropdown-item" href="#">Another action</a>
-                      <div class="dropdown-divider"></div>
-                      <a class="dropdown-item" href="#">Something else here</a>
-                    </div>
-                  </div>
                 </div>
-                <!-- Card Body -->
                 <div class="card-body">
                   <div class="chart-area">
-                    <canvas id="myPowerChart"></canvas>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Pie Chart -->
-            <div class="col-xl-4 col-lg-5">
-              <div class="card shadow mb-4">
-                <!-- Card Header - Dropdown -->
-                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
-                  <h6 class="m-0 font-weight-bold text-primary">Revenue Sources</h6>
-                  <div class="dropdown no-arrow">
-                    <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                      <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
-                    </a>
-                    <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in" aria-labelledby="dropdownMenuLink">
-                      <div class="dropdown-header">Dropdown Header:</div>
-                      <a class="dropdown-item" href="#">Action</a>
-                      <a class="dropdown-item" href="#">Another action</a>
-                      <div class="dropdown-divider"></div>
-                      <a class="dropdown-item" href="#">Something else here</a>
-                    </div>
-                  </div>
-                </div>
-                <!-- Card Body -->
-                <div class="card-body">
-                  <div class="chart-pie pt-4 pb-2">
-                    <canvas id="myPieChart"></canvas>
-                  </div>
-                  <div class="mt-4 text-center small">
-                    <span class="mr-2">
-                      <i class="fas fa-circle text-primary"></i> Direct
-                    </span>
-                    <span class="mr-2">
-                      <i class="fas fa-circle text-success"></i> Social
-                    </span>
-                    <span class="mr-2">
-                      <i class="fas fa-circle text-info"></i> Referral
-                    </span>
+                    <canvas id="PowerChart"></canvas>
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- Content Row -->
           <div class="row">
-
-            <!-- Content Column -->
-            <div class="col-lg-6 mb-4">
-
-              <!-- Project Card Example -->
+            <div class="col-xl-12 col-lg-7">
               <div class="card shadow mb-4">
                 <div class="card-header py-3">
-                  <h6 class="m-0 font-weight-bold text-primary">Projects</h6>
+                  <h6 class="m-0 font-weight-bold text-primary">Temperatur</h6>
                 </div>
                 <div class="card-body">
-                  <h4 class="small font-weight-bold">Server Migration <span class="float-right">20%</span></h4>
-                  <div class="progress mb-4">
-                    <div class="progress-bar bg-danger" role="progressbar" style="width: 20%" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100"></div>
-                  </div>
-                  <h4 class="small font-weight-bold">Sales Tracking <span class="float-right">40%</span></h4>
-                  <div class="progress mb-4">
-                    <div class="progress-bar bg-warning" role="progressbar" style="width: 40%" aria-valuenow="40" aria-valuemin="0" aria-valuemax="100"></div>
-                  </div>
-                  <h4 class="small font-weight-bold">Customer Database <span class="float-right">60%</span></h4>
-                  <div class="progress mb-4">
-                    <div class="progress-bar" role="progressbar" style="width: 60%" aria-valuenow="60" aria-valuemin="0" aria-valuemax="100"></div>
-                  </div>
-                  <h4 class="small font-weight-bold">Payout Details <span class="float-right">80%</span></h4>
-                  <div class="progress mb-4">
-                    <div class="progress-bar bg-info" role="progressbar" style="width: 80%" aria-valuenow="80" aria-valuemin="0" aria-valuemax="100"></div>
-                  </div>
-                  <h4 class="small font-weight-bold">Account Setup <span class="float-right">Complete!</span></h4>
-                  <div class="progress">
-                    <div class="progress-bar bg-success" role="progressbar" style="width: 100%" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
+                  <div class="chart-area">
+                    <canvas id="BatteryChart"></canvas>
                   </div>
                 </div>
               </div>
-
-              <!-- Color System -->
-              <div class="row">
-                <div class="col-lg-6 mb-4">
-                  <div class="card bg-primary text-white shadow">
-                    <div class="card-body">
-                      Primary
-                      <div class="text-white-50 small">#4e73df</div>
-                    </div>
-                  </div>
-                </div>
-                <div class="col-lg-6 mb-4">
-                  <div class="card bg-success text-white shadow">
-                    <div class="card-body">
-                      Success
-                      <div class="text-white-50 small">#1cc88a</div>
-                    </div>
-                  </div>
-                </div>
-                <div class="col-lg-6 mb-4">
-                  <div class="card bg-info text-white shadow">
-                    <div class="card-body">
-                      Info
-                      <div class="text-white-50 small">#36b9cc</div>
-                    </div>
-                  </div>
-                </div>
-                <div class="col-lg-6 mb-4">
-                  <div class="card bg-warning text-white shadow">
-                    <div class="card-body">
-                      Warning
-                      <div class="text-white-50 small">#f6c23e</div>
-                    </div>
-                  </div>
-                </div>
-                <div class="col-lg-6 mb-4">
-                  <div class="card bg-danger text-white shadow">
-                    <div class="card-body">
-                      Danger
-                      <div class="text-white-50 small">#e74a3b</div>
-                    </div>
-                  </div>
-                </div>
-                <div class="col-lg-6 mb-4">
-                  <div class="card bg-secondary text-white shadow">
-                    <div class="card-body">
-                      Secondary
-                      <div class="text-white-50 small">#858796</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-            </div>
-
-            <div class="col-lg-6 mb-4">
-
-              <!-- Illustrations -->
-              <div class="card shadow mb-4">
-                <div class="card-header py-3">
-                  <h6 class="m-0 font-weight-bold text-primary">Illustrations</h6>
-                </div>
-                <div class="card-body">
-                  <div class="text-center">
-                    <img class="img-fluid px-3 px-sm-4 mt-3 mb-4" style="width: 25rem;" src="img/undraw_posting_photo.svg" alt="">
-                  </div>
-                  <p>Add some quality, svg illustrations to your project courtesy of <a target="_blank" rel="nofollow" href="https://undraw.co/">unDraw</a>, a constantly updated collection of beautiful svg images that you can use completely free and without attribution!</p>
-                  <a target="_blank" rel="nofollow" href="https://undraw.co/">Browse Illustrations on unDraw &rarr;</a>
-                </div>
-              </div>
-
-              <!-- Approach -->
-              <div class="card shadow mb-4">
-                <div class="card-header py-3">
-                  <h6 class="m-0 font-weight-bold text-primary">Development Approach</h6>
-                </div>
-                <div class="card-body">
-                  <p>SB Admin 2 makes extensive use of Bootstrap 4 utility classes in order to reduce CSS bloat and poor page performance. Custom CSS classes are used to create custom components and custom utility classes.</p>
-                  <p class="mb-0">Before working with this theme, you should become familiar with the Bootstrap framework, especially the utility classes.</p>
-                </div>
-              </div>
-
             </div>
           </div>
+    
 
         </div>
         <!-- /.container-fluid -->
@@ -444,15 +213,6 @@
       </div>
       <!-- End of Main Content -->
 
-      <!-- Footer -->
-      <footer class="sticky-footer bg-white">
-        <div class="container my-auto">
-          <div class="copyright text-center my-auto">
-            <span>Copyright &copy; Your Website 2019</span>
-          </div>
-        </div>
-      </footer>
-      <!-- End of Footer -->
 
     </div>
     <!-- End of Content Wrapper -->
@@ -476,25 +236,42 @@
   <script src="js/sb-admin-2.min.js"></script>
 
   <!-- Page level plugins -->
-  <script src="vendor/chart.js/Chart.bundle.min.js"></script>
 
-  <!-- Page level custom scripts -->
-  
- <!-- <script src="js/demo/chart-pie-demo.js"></script>-->
-
+  <script src="vendor/chart.js/chart.js"></script>
+  <script src="vendor/chart.js/luxon.js"></script>
+  <script src="vendor/chart.js/chartjs-adapter-date-luxon.js"></script>
 
   <script>
-    // Set new default font family and font color to mimic Bootstrap's default styling
-Chart.defaults.global.defaultFontFamily = 'Nunito', '-apple-system,system-ui,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif';
-Chart.defaults.global.defaultFontColor = '#858796';
+
+let width, height, gradient;
+function getTemperatureGradient(ctx, chartArea) {
+  const chartWidth = chartArea.right - chartArea.left;
+  const chartHeight = chartArea.bottom - chartArea.top;
+  console.log (chartArea.bottom);
+  console.log (chartArea.top);
+  console.log (chartHeight);
+  
+  if (gradient === null || width !== chartWidth || height !== chartHeight) {
+    // Create the gradient because this is either the first render
+    // or the size of the chart has changed
+    width = chartWidth;
+    height = chartHeight;
+    gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+    gradient.addColorStop(0, "#17a2b8");
+    gradient.addColorStop(0.5, "#ffc107");
+    gradient.addColorStop(1, "#dc3545");
+  }
+
+  return gradient;
+}
+
 
 
 $(document).ready(function(){
   $.ajax({
-    url: "data/today.php",
+    url: "data/last_24hrs.php",
     method: "GET",
     success: function(data) {
-      
       var minute = [];
       var demand = [];
       var feedin = [];
@@ -502,78 +279,113 @@ $(document).ready(function(){
       var consumption = [];
       var temperature = [];
       var battery = [];
-
+      var demand_bf = [];
+      var feedin_bf = [];
+      var pv_bf = [];
+      var consumption_bf = [];
+      var temperature_bf = [];
+      var battery_bf = [];      
+      //luxon.Settings.defaultZone = "Europe/Berlin";
       for(var i in data) {
-        minute.push(data[i].date);
-        demand.push(data[i].demand);
-        feedin.push(data[i].feedin);
-        pv.push(data[i].pv);
-        consumption.push(data[i].consumption);
-        temperature.push(data[i].temperature);
-        battery.push(data[i].battery_percent);
+        if (data[i].day_before == 0) {
+          minute.push(luxon.DateTime.fromISO(data[i].date));
+          demand.push(data[i].demand);
+          feedin.push(data[i].feedin);
+          pv.push(data[i].pv);
+          consumption.push(data[i].consumption);
+          temperature.push(data[i].temperature);
+          battery.push(data[i].battery_percent);
+        } else {
+          demand_bf.push(data[i].demand);
+          feedin_bf.push(data[i].feedin);
+          pv_bf.push(data[i].pv);
+          consumption_bf.push(data[i].consumption);
+          temperature_bf.push(data[i].temperature);
+          battery_bf.push(data[i].battery_percent);
+        }
       }
+ 
+      const ctx = document.getElementById('BatteryChart');
+      const myChart = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: minute,
+            datasets: [
+              {
+                label: "Temperatur",
+                data: temperature,
+                lineTension: 0.3,
+                backgroundColor: "rgba(78, 115, 223, 0.05)",
+                pointRadius: 0,
+                yAxisID: 'y',
+                borderColor: "#fd7e14"
+                /*borderColor: function(context) {
+                  const chart = context.chart;
+                  const {ctx, chartArea} = chart;
 
-
-// Area Chart Example
-      var ctx = document.getElementById("myAreaChart");
-      var myLineChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels: minute,
-          datasets: [{
-            label: "Temperatur",
-            lineTension: 0.3,
-            backgroundColor: "rgba(78, 115, 223, 0.05)",
-            borderColor: "rgba(78, 115, 223, 1)",
-            pointRadius: 0,
-            data: temperature
-          }]
-        },
-        options: {
-          maintainAspectRatio: false,
-          layout: {
-            padding: {
-              left: 10,
-              right: 25,
-              top: 25,
-              bottom: 0
+                  if (!chartArea) {
+                    // This case happens on initial chart load
+                    return null;
+                  }
+                  return getTemperatureGradient(ctx, chartArea);
+                }*/
+              },{
+                label: "Temperatur Vortag",
+                data: temperature_bf,
+                lineTension: 0.3,
+                backgroundColor: "rgba(78, 115, 223, 0.05)",
+                pointRadius: 0,
+                yAxisID: 'y',
+                borderWidth: 1,
+                borderColor: "rgba(32, 201, 151, 0.7)"
+              }
+            ]
+          },
+          options: {
+            zone: "Europe/Berlin",
+            responsive: true,
+            interaction: {
+              mode: 'index',
+              intersect: false,
+            },
+            plugins: {
+              legend: {
+                display: false
+              }
+            },
+            stacked: false,
+            scales: {
+              x: {
+                type: 'time',
+                time: {
+                  // Luxon format string
+                  tooltipFormat: 'DD T'
+                },
+                title: {
+                  display: true,
+                  text: 'Date'
+                }
+              },              
+              y: {
+                gridLines: {
+                  color: "rgb(234, 236, 244)",
+                  zeroLineColor: "rgb(234, 236, 244)",
+                  drawBorder: false,
+                  borderDash: [2],
+                  zeroLineBorderDash: [2]
+                },
+                title: {
+                  display: true,
+                  text: '°C'
+                }
+              }
             }
           },
-          scales: {
-            xAxes: [{
-                type: "time",
-                time: {
-                    format: 'YYYY-MM-DD HH:mm:ss',
-                    unit: 'minute',
-                    displayFormats: {
-                      minute: 'H:mm'
-                    }
-                },
-                gridLines: {
-                  display: false,
-                  drawBorder: false
-                }
-            }],
-            yAxes: [{
-              gridLines: {
-                color: "rgb(234, 236, 244)",
-                zeroLineColor: "rgb(234, 236, 244)",
-                drawBorder: false,
-                borderDash: [2],
-                zeroLineBorderDash: [2]
-              }
-            }]
-          },
-          legend: {
-            display: false
-          }
         }
-      });
+      );
 
-
-      // Area Chart Example
-      var ctx = document.getElementById("myPowerChart");
-      var myLineChart = new Chart(ctx, {
+      const ctp = document.getElementById('PowerChart');
+      var myLineChart = new Chart(ctp, {
         type: 'line',
         data: {
           labels: minute,
@@ -585,7 +397,7 @@ $(document).ready(function(){
             borderWidth: 1,
             pointRadius: 0,
             data: demand,
-            yAxisID: 'kw'
+            yAxisID: 'y'
           },{
             label: "PV",
             lineTension: 0.1,
@@ -594,7 +406,7 @@ $(document).ready(function(){
             borderWidth: 1,
             pointRadius: 0,
             data: pv,
-            yAxisID: 'kw'
+            yAxisID: 'y'
           },{
             label: "Einspeisung",
             lineTension: 0.1,
@@ -603,7 +415,7 @@ $(document).ready(function(){
             borderWidth: 1,
             pointRadius: 0,
             data: feedin,
-            yAxisID: 'kw'
+            yAxisID: 'y'
           },{
             label: "Verbrauch",
             lineTension: 0.1,
@@ -612,7 +424,7 @@ $(document).ready(function(){
             borderWidth: 1,
             pointRadius: 0,
             data: consumption,
-            yAxisID: 'kw'
+            yAxisID: 'y'
           },{
             label: "Batterie",
             lineTension: 0.3,
@@ -621,7 +433,7 @@ $(document).ready(function(){
             borderWidth: 1,
             pointRadius: 0,
             data: battery,
-            yAxisID: 'per'
+            yAxisID: 'y1'
           }]
         },
         options: {
@@ -635,21 +447,18 @@ $(document).ready(function(){
             }
           },
           scales: {
-            xAxes: [{
-                type: "time",
-                time: {
-                    format: 'YYYY-MM-DD HH:mm:ss',
-                    unit: 'minute',
-                    displayFormats: {
-                      minute: 'H:mm'
-                    }
-                },
-                gridLines: {
-                  display: false,
-                  drawBorder: false
-                }
-            }],
-            yAxes: [{
+            x: {
+              type: 'time',
+              time: {
+                // Luxon format string
+                tooltipFormat: 'DD T'
+              },
+              title: {
+                display: true,
+                text: 'Date'
+              }
+            },
+            y: {
               id: 'kw',
               position: 'left',
               gridLines: {
@@ -658,8 +467,13 @@ $(document).ready(function(){
                 drawBorder: false,
                 borderDash: [2],
                 zeroLineBorderDash: [2]
+              },
+              title: {
+                display: true,
+                text: 'kW'
               }
-            },{
+            },
+            y1: {
               id: 'per',
               position: 'right',
               gridLines: {
@@ -668,8 +482,12 @@ $(document).ready(function(){
                 drawBorder: false,
                 borderDash: [2],
                 zeroLineBorderDash: [2]
+              },
+              title: {
+                display: true,
+                text: '%'
               }
-            }]
+            }
           },
           legend: {
             display: true
@@ -680,89 +498,6 @@ $(document).ready(function(){
   });
 });
 
-
-$(document).ready(function(){
-  $.ajax({
-    url: "data/bat.php",
-    method: "GET",
-    success: function(data) {
-      
-      var minute = [];
-      var temperature = [];
-      var yesterday = [];
-
-      for(var i in data) {
-        minute.push(data[i].date);
-        temperature.push(data[i].temperature);
-        yesterday.push(data[i].yesterday);
-      }
-
-
-// Area Chart Example
-      var ctx = document.getElementById("myBatLast");
-      var myLineChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels: minute,
-          datasets: [{
-            label: "Temperatur",
-            lineTension: 0.3,
-            backgroundColor: "rgba(78, 115, 223, 0.05)",
-            borderColor: "rgba(78, 115, 223, 1)",
-            pointRadius: 0,
-            data: temperature
-          },{
-            label: "Gestern",
-            lineTension: 0.3,
-            backgroundColor: "rgba(78, 115, 223, 0.05)",
-            borderColor: "rgba(115, 115, 115, 1)",
-            pointRadius: 0,
-            data: yesterday
-          }]
-        },
-        options: {
-          maintainAspectRatio: false,
-          layout: {
-            padding: {
-              left: 10,
-              right: 25,
-              top: 25,
-              bottom: 0
-            }
-          },
-          scales: {
-            xAxes: [{
-                type: "time",
-                time: {
-                    format: 'YYYY-MM-DD HH:mm:ss',
-                    unit: 'minute',
-                    displayFormats: {
-                      minute: 'H:mm'
-                    }
-                },
-                gridLines: {
-                  display: false,
-                  drawBorder: false
-                }
-            }],
-            yAxes: [{
-              gridLines: {
-                color: "rgb(234, 236, 244)",
-                zeroLineColor: "rgb(234, 236, 244)",
-                drawBorder: false,
-                borderDash: [2],
-                zeroLineBorderDash: [2]
-              }
-            }]
-          },
-          legend: {
-            display: false
-          }
-        }
-      });
-    }
-  });
-});
 </script>
 
 </body>
