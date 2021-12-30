@@ -129,39 +129,38 @@ def pushMqttConfig(model_name, sn, sw_version):
     data["unit_of_measurement"] = "kWh"
     data["icon"] = "mdi:solar-power"
     data["value_template"] = "{{ value_json.pv1}}"
-    client.publish("homeassistant/sensor/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS)
+    client.publish("homeassistant/sensor/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS, retain=True)
 
     data["name"] = "Photovoltaik 2"
     data["unique_id"] = MQTT_TOPIC + "_pv2"
     data["value_template"] = "{{ value_json.pv2}}"
-    client.publish("homeassistant/sensor/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS)
+    client.publish("homeassistant/sensor/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS, retain=True)
 
     data["name"] = "Entnahme vom Netz"
     data["unique_id"] = MQTT_TOPIC + "_demand_grid"
     del data['icon']
     data["value_template"] = "{{ value_json.demandgrid}}"
-    client.publish("homeassistant/sensor/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS)
+    client.publish("homeassistant/sensor/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS, retain=True)
 
     data["name"] = "Einspeisung ins Netz"
     data["unique_id"] = MQTT_TOPIC + "_feedin_grid"
     data["value_template"] = "{{ value_json.feedingrid}}"
-    client.publish("homeassistant/sensor/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS)
+    client.publish("homeassistant/sensor/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS, retain=True)
 
     data["name"] = "Hausverbrauch"
     data["unique_id"] = MQTT_TOPIC + "_consumption"
     data["value_template"] = "{{ value_json.consumption}}"
-    client.publish("homeassistant/sensor/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS)
+    client.publish("homeassistant/sensor/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS, retain=True)
    
     data["name"] = "Entnahme aus Batterie"
     data["unique_id"] = MQTT_TOPIC + "_demand_battery"
     data["value_template"] = "{{ value_json.demandbattery}}"
-    client.publish("homeassistant/sensor/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS)
+    client.publish("homeassistant/sensor/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS, retain=True)
 
     data["name"] = "Einspeisung in Batterie"
     data["unique_id"] = MQTT_TOPIC + "_feedin_battery"
     data["value_template"] = "{{ value_json.feedinbattery}}"
-    client.publish("homeassistant/sensor/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS)
-
+    client.publish("homeassistant/sensor/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS, retain=True)
 
     data["name"] = "Temperatur"
     data["unique_id"] = MQTT_TOPIC + "_temperature"
@@ -169,7 +168,7 @@ def pushMqttConfig(model_name, sn, sw_version):
     data["unit_of_measurement"] = "°C"
     data["state_topic"] = MQTT_TOPIC + "/state"
     data["value_template"] = "{{ value_json.temperature}}"
-    client.publish("homeassistant/sensor/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS)
+    client.publish("homeassistant/sensor/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS, retain=True)
     
 
 
