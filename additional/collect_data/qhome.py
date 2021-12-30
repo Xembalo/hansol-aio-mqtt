@@ -99,12 +99,7 @@ def insertIntoMariadb(logdate, battery, pv1, pv2, demand, feedin, consumption, t
     conn.close()
 
 #push auto discovery info for home assistant
-def pushMqttConfig(model_name, sn, sw_version):
-    client = mqtt.Client(MQTT_CLIENT_IDENTIFIER)
-    if MQTT_USER != "":
-        client.username_pw_set(username=MQTT_USER,password=MQTT_PASS)
-    client.connect(MQTT_BROKER_ADDRESS, MQTT_PORT)
-
+def pushMqttConfig(mqttclient, model_name, sn, sw_version):
     
     data = {}
     data["device"] = {}
@@ -120,7 +115,7 @@ def pushMqttConfig(model_name, sn, sw_version):
     data["unit_of_measurement"] = "%"
     data["state_topic"] = MQTT_TOPIC + "/state"
     data["value_template"] = "{{ value_json.battery}}"
-    client.publish("homeassistant/sensor/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS)
+    mqttclient.publish("homeassistant/sensor/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS, retain=True)
     
     data["name"] = "Photovoltaik 1"
     data["unique_id"] = MQTT_TOPIC + "_pv1"
@@ -129,38 +124,38 @@ def pushMqttConfig(model_name, sn, sw_version):
     data["unit_of_measurement"] = "kWh"
     data["icon"] = "mdi:solar-power"
     data["value_template"] = "{{ value_json.pv1}}"
-    client.publish("homeassistant/sensor/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS, retain=True)
+    mqttclient.publish("homeassistant/sensor/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS, retain=True)
 
     data["name"] = "Photovoltaik 2"
     data["unique_id"] = MQTT_TOPIC + "_pv2"
     data["value_template"] = "{{ value_json.pv2}}"
-    client.publish("homeassistant/sensor/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS, retain=True)
+    mqttclient.publish("homeassistant/sensor/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS, retain=True)
 
     data["name"] = "Entnahme vom Netz"
     data["unique_id"] = MQTT_TOPIC + "_demand_grid"
     del data['icon']
     data["value_template"] = "{{ value_json.demandgrid}}"
-    client.publish("homeassistant/sensor/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS, retain=True)
+    mqttclient.publish("homeassistant/sensor/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS, retain=True)
 
     data["name"] = "Einspeisung ins Netz"
     data["unique_id"] = MQTT_TOPIC + "_feedin_grid"
     data["value_template"] = "{{ value_json.feedingrid}}"
-    client.publish("homeassistant/sensor/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS, retain=True)
+    mqttclient.publish("homeassistant/sensor/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS, retain=True)
 
     data["name"] = "Hausverbrauch"
     data["unique_id"] = MQTT_TOPIC + "_consumption"
     data["value_template"] = "{{ value_json.consumption}}"
-    client.publish("homeassistant/sensor/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS, retain=True)
+    mqttclient.publish("homeassistant/sensor/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS, retain=True)
    
     data["name"] = "Entnahme aus Batterie"
     data["unique_id"] = MQTT_TOPIC + "_demand_battery"
     data["value_template"] = "{{ value_json.demandbattery}}"
-    client.publish("homeassistant/sensor/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS, retain=True)
+    mqttclient.publish("homeassistant/sensor/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS, retain=True)
 
     data["name"] = "Einspeisung in Batterie"
     data["unique_id"] = MQTT_TOPIC + "_feedin_battery"
     data["value_template"] = "{{ value_json.feedinbattery}}"
-    client.publish("homeassistant/sensor/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS, retain=True)
+    mqttclient.publish("homeassistant/sensor/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS, retain=True)
 
     data["name"] = "Temperatur"
     data["unique_id"] = MQTT_TOPIC + "_temperature"
@@ -168,18 +163,9 @@ def pushMqttConfig(model_name, sn, sw_version):
     data["unit_of_measurement"] = "°C"
     data["state_topic"] = MQTT_TOPIC + "/state"
     data["value_template"] = "{{ value_json.temperature}}"
-    client.publish("homeassistant/sensor/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS, retain=True)
-    
+    mqttclient.publish("homeassistant/sensor/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS, retain=True)
 
-
-    client.loop()
-
-def pushMqttStats(logdate, battery, pv1, pv2, demandgrid, feedingrid, consumption, temp, feedinbattery, demandbattery):
-    client = mqtt.Client(MQTT_CLIENT_IDENTIFIER)
-    if MQTT_USER != "":
-        client.username_pw_set(username=MQTT_USER,password=MQTT_PASS)
-    client.connect(MQTT_BROKER_ADDRESS, MQTT_PORT)
-    
+def pushMqttStats(mqttclient, logdate, battery, pv1, pv2, demandgrid, feedingrid, consumption, temp, feedinbattery, demandbattery):  
     data = {}
     data["date"] = logdate
     data["battery"] = battery
@@ -193,8 +179,7 @@ def pushMqttStats(logdate, battery, pv1, pv2, demandgrid, feedingrid, consumptio
     data["demandbattery"] = round(demandbattery, 3)
     data["temperature"] = round(temp, 1)    
     
-    client.publish(MQTT_TOPIC + "/state", json.dumps(data), qos=MQTT_QOS)
-    client.loop()
+    mqttclient.publish(MQTT_TOPIC + "/state", json.dumps(data), qos=MQTT_QOS)
 
 def main():
     global ESS_HOST
@@ -266,13 +251,29 @@ def main():
     #log the current time
     now = time.strftime("%Y-%m-%d %H:%M")
 
-    #create new session
-    session = requests.Session()
+    #creates mqtt client if nessessary 
+    if MQTT_ENABLED:
+        client = mqtt.Client(MQTT_CLIENT_IDENTIFIER)
+        if MQTT_USER != "":
+            client.username_pw_set(username=MQTT_USER,password=MQTT_PASS)
 
-    #Read device info, only at full hour and if MQTT is enabled
+        try:
+            client.connect(MQTT_BROKER_ADDRESS, MQTT_PORT) 
+        except:
+            print("MQTT connection failed")
+            MQTT_ENABLED = False
+
+    if not MARIADB_ENABLED and not MQTT_ENABLED:
+        print('DB disabled and MQTT failed, nothing to do for me anymore')
+        sys.exit()
+
+    #create new session
+    session = requests.Session()        
+
+    #read device info, only at full hour and if MQTT is enabled
     if MQTT_ENABLED and (time.strftime("%M") == "00" or MQTT_FORCE_CONFIG_BROADCAST):
         model, sw_version, sn = readDeviceInfo(session)
-        pushMqttConfig(model, sn, sw_version)
+        pushMqttConfig(client, model, sn, sw_version)
     
     #calc only if useful
     if MARIADB_ENABLED or MQTT_ENABLED: batteryavg, pv1avg, pv2avg, demandavg, feedingridavg, consumptiongridavg, tempavg, feedinbatteryavg, demandbatteryavg = calcStats(session)
@@ -280,8 +281,11 @@ def main():
     #insert into db
     if MARIADB_ENABLED: insertIntoMariadb(now, batteryavg, pv1avg, pv2avg, demandavg, feedingridavg, consumptiongridavg, tempavg)
     
-    #push to mqtt
-    if MQTT_ENABLED: pushMqttStats(now, batteryavg, pv1avg, pv2avg, demandavg, feedingridavg, consumptiongridavg, tempavg, feedinbatteryavg, demandbatteryavg)
+    #push to mqtt and quits connection
+    if MQTT_ENABLED: 
+        pushMqttStats(client, now, batteryavg, pv1avg, pv2avg, demandavg, feedingridavg, consumptiongridavg, tempavg, feedinbatteryavg, demandbatteryavg)
+        client.disconnect() # disconnect
+
 
 if __name__ == "__main__":
    main()
