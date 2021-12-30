@@ -101,6 +101,8 @@ def insertIntoMariadb(logdate, battery, pv1, pv2, demand, feedin, consumption, t
 #push auto discovery info for home assistant
 def pushMqttConfig(model_name, sn, sw_version):
     client = mqtt.Client(MQTT_CLIENT_IDENTIFIER)
+    if MQTT_USER != "":
+        client.username_pw_set(username=MQTT_USER,password=MQTT_PASS)
     client.connect(MQTT_BROKER_ADDRESS, MQTT_PORT)
 
     
@@ -175,6 +177,8 @@ def pushMqttConfig(model_name, sn, sw_version):
 
 def pushMqttStats(logdate, battery, pv1, pv2, demandgrid, feedingrid, consumption, temp, feedinbattery, demandbattery):
     client = mqtt.Client(MQTT_CLIENT_IDENTIFIER)
+    if MQTT_USER != "":
+        client.username_pw_set(username=MQTT_USER,password=MQTT_PASS)
     client.connect(MQTT_BROKER_ADDRESS, MQTT_PORT)
     
     data = {}
@@ -207,6 +211,8 @@ def main():
     global MQTT_BROKER_ADDRESS
     global MQTT_PORT
     global MQTT_QOS
+    global MQTT_USER
+    global MQTT_PASS
     global MQTT_FORCE_CONFIG_BROADCAST
 
     parser = argparse.ArgumentParser(
@@ -230,6 +236,8 @@ def main():
     group.add_argument("--mqtt_topic",             help="Topic for stats, like demand, feed-in or battery level", metavar='topic')
     group.add_argument("--mqtt_host",              help="Host or IP of your mqtt broker (e.g. localhost)", metavar='host/ip')
     group.add_argument("--mqtt_port",              type=int, default=1883, help="port of your mqtt broker (default: %(default)s)", metavar='port')
+    group.add_argument("--mqtt_user",              help="Username for your mqtt broker", metavar='username')
+    group.add_argument("--mqtt_pass",              help="Password for your mqtt broker", metavar='password')
     group.add_argument("--mqtt_qos",               type=int, choices=[0, 1], default=0, help="QoS of your messages [0/1]", metavar='qos-level')
     group.add_argument("--mqtt_force_config_broadcast", default=False, help="Force the MQTT sensor configuration to be transmitted at startup instead of only on the hour ", action="store_true")
     
@@ -247,6 +255,8 @@ def main():
     MQTT_TOPIC                  = args.mqtt_topic
     MQTT_BROKER_ADDRESS         = args.mqtt_host
     MQTT_PORT                   = args.mqtt_port
+    MQTT_USER                   = args.mqtt_user
+    MQTT_PASS                   = args.mqtt_pass
     MQTT_QOS                    = args.mqtt_qos
     MQTT_FORCE_CONFIG_BROADCAST = args.mqtt_force_config_broadcast
 
