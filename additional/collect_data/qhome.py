@@ -31,11 +31,12 @@ def readDeviceInfo(session):
 #Read contents from qhome-stats-page
 def readStats(session):
     
-    response = session.get("http://" + ESS_HOST + ":21710/f0")
+    response = session.get("http://" + ESS_HOST + ":21710/f8")
     soup = BeautifulSoup(response.text, features="html.parser")
 
     battery = float(findValue(soup, "BT_SOC"))
-    pv = float(findValue(soup, "PV_P(30s)"))
+    pv1 = float(findValue(soup, "PV_1_P(30s)"))
+    pv2 = float(findValue(soup, "PV_2_P(30s)"))
     grid = float(findValue(soup, "GRID_P(30s)"))
     temp = float(findValue(soup, "Temp"))
     load = float(findValue(soup, "LOAD_P(30s)"))
@@ -47,37 +48,38 @@ def readStats(session):
         demand = 0
         feedin = grid * -1
 
-    return battery, pv, demand, feedin, load, temp
+    return battery, pv1, pv2, demand, feedin, load, temp
 
 def calcStats(session):
     #Read values from stat page
-    battery1, pv1, demand1, feedin1, consumption1, temp1 = readStats(session)
+    battery1, pv11, pv21, demand1, feedin1, consumption1, temp1 = readStats(session)
 
     #wait 31 seconds, qhome avg over 30 seconds
     time.sleep(31)
 
     #Read next stats
-    battery2, pv2, demand2, feedin2, consumption2, temp2 = readStats(session)
+    battery2, pv12, pv22, demand2, feedin2, consumption2, temp2 = readStats(session)
 
     #calc avg values
     batteryavg = (battery1 + battery2)/2
     tempavg = (temp1 + temp2)/2
-    pvavg = (pv1 + pv2)/2000
+    pv1avg = (pv11 + pv12)/2000
+    pv2avg = (pv21 + pv22)/2000
     demandgridavg = (demand1 + demand2)/2000
     feedingridavg = (feedin1 + feedin2)/2000
     consumptionavg = (consumption1 + consumption2)/2000
     
     #calc battery feedin or demand
-    if pvavg + demandgridavg > feedingridavg + consumptionavg:
+    if pv1avg + pv2avg + demandgridavg > feedingridavg + consumptionavg:
         demandbatteryavg = 0
-        feedinbatteryavg = pvavg + demandgridavg - feedingridavg - consumptionavg
+        feedinbatteryavg = pv1avg + pv2avg + demandgridavg - feedingridavg - consumptionavg
     else:
         feedinbatteryavg = 0
-        demandbatteryavg = consumptionavg + feedingridavg - pvavg - demandgridavg
+        demandbatteryavg = consumptionavg + feedingridavg - pv1avg - pv2avg - demandgridavg
     
-    return batteryavg, pvavg, demandgridavg, feedingridavg, consumptionavg, tempavg, feedinbatteryavg, demandbatteryavg
+    return batteryavg, pv1avg, pv2avg, demandgridavg, feedingridavg, consumptionavg, tempavg, feedinbatteryavg, demandbatteryavg
 
-def insertIntoMariadb(logdate, battery, pv, demand, feedin, consumption, temp):
+def insertIntoMariadb(logdate, battery, pv1, pv2, demand, feedin, consumption, temp):
     conn  = pymysql.connect(
                 host=MARIADB_HOST, 
                 user=MARIADB_USER, 
@@ -88,8 +90,9 @@ def insertIntoMariadb(logdate, battery, pv, demand, feedin, consumption, temp):
     
     # Create a cursor object
     cur  = conn.cursor()
+    pv = pv1 + pv2
 
-    query = f"INSERT INTO logspython (date, demand, feedin, consumption, battery_percent, pv, temperature) VALUES ('{logdate}', '{demand}', '{feedin}', '{consumption}', '{battery}', '{pv}', '{temp}')"
+    query = f"INSERT INTO logs (date, demand, feedin, consumption, battery_percent, pv, pv1, pv2, temperature) VALUES ('{logdate}', '{demand}', '{feedin}', '{consumption}', '{battery}', '{pv}', '{pv1}', '{pv2}', '{temp}')"
     
     cur.execute(query)
     conn.commit()
@@ -117,13 +120,18 @@ def pushMqttConfig(model_name, sn, sw_version):
     data["value_template"] = "{{ value_json.battery}}"
     client.publish("homeassistant/sensor/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS)
     
-    data["name"] = "Photovoltaik"
-    data["unique_id"] = MQTT_TOPIC + "_pv"
+    data["name"] = "Photovoltaik 1"
+    data["unique_id"] = MQTT_TOPIC + "_pv1"
     data["device_class"] = "energy"
     data["state_class"] = "measurement"
     data["unit_of_measurement"] = "kWh"
     data["icon"] = "mdi:solar-power"
-    data["value_template"] = "{{ value_json.pv}}"
+    data["value_template"] = "{{ value_json.pv1}}"
+    client.publish("homeassistant/sensor/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS)
+
+    data["name"] = "Photovoltaik 2"
+    data["unique_id"] = MQTT_TOPIC + "_pv2"
+    data["value_template"] = "{{ value_json.pv2}}"
     client.publish("homeassistant/sensor/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS)
 
     data["name"] = "Entnahme vom Netz"
@@ -165,20 +173,22 @@ def pushMqttConfig(model_name, sn, sw_version):
 
     client.loop()
 
-def pushMqttStats(logdate, battery, pv, demandgrid, feedingrid, consumption, temp, feedinbattery, demandbattery):
+def pushMqttStats(logdate, battery, pv1, pv2, demandgrid, feedingrid, consumption, temp, feedinbattery, demandbattery):
     client = mqtt.Client(MQTT_CLIENT_IDENTIFIER)
     client.connect(MQTT_BROKER_ADDRESS, MQTT_PORT)
     
     data = {}
     data["date"] = logdate
     data["battery"] = battery
-    data["pv"] = round(pv/60, 3)
-    data["demandgrid"] = round(demandgrid/60, 3)
-    data["feedingrid"] = round(feedingrid/60, 3)
-    data["consumption"] = round(consumption/60, 3)
-    data["feedinbattery"] = round(feedinbattery/60, 3)
-    data["demandbattery"] = round(demandbattery/60, 3)
-    data["temperature"] = round(temp, 1)
+    data["pv"] = round(pv1 + pv2, 3)
+    data["pv1"] = round(pv1, 3)
+    data["pv2"] = round(pv2, 3)
+    data["demandgrid"] = round(demandgrid, 3)
+    data["feedingrid"] = round(feedingrid, 3)
+    data["consumption"] = round(consumption, 3)
+    data["feedinbattery"] = round(feedinbattery, 3)
+    data["demandbattery"] = round(demandbattery, 3)
+    data["temperature"] = round(temp, 1)    
     
     client.publish(MQTT_TOPIC + "/state", json.dumps(data), qos=MQTT_QOS)
     client.loop()
@@ -256,13 +266,13 @@ def main():
         pushMqttConfig(model, sn, sw_version)
     
     #calc only if useful
-    if MARIADB_ENABLED or MQTT_ENABLED: batteryavg, pvavg, demandavg, feedingridavg, consumptiongridavg, tempavg, feedinbatteryavg, demandbatteryavg = calcStats(session)
+    if MARIADB_ENABLED or MQTT_ENABLED: batteryavg, pv1avg, pv2avg, demandavg, feedingridavg, consumptiongridavg, tempavg, feedinbatteryavg, demandbatteryavg = calcStats(session)
 
     #insert into db
-    if MARIADB_ENABLED: insertIntoMariadb(now, batteryavg, pvavg, demandavg, feedingridavg, consumptiongridavg, tempavg)
+    if MARIADB_ENABLED: insertIntoMariadb(now, batteryavg, pv1avg, pv2avg, demandavg, feedingridavg, consumptiongridavg, tempavg)
     
     #push to mqtt
-    if MQTT_ENABLED: pushMqttStats(now, batteryavg, pvavg, demandavg, feedingridavg, consumptiongridavg, tempavg, feedinbatteryavg, demandbatteryavg)
+    if MQTT_ENABLED: pushMqttStats(now, batteryavg, pv1avg, pv2avg, demandavg, feedingridavg, consumptiongridavg, tempavg, feedinbatteryavg, demandbatteryavg)
 
 if __name__ == "__main__":
    main()
