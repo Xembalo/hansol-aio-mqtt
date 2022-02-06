@@ -1,4 +1,3 @@
-from typing import TYPE_CHECKING
 import requests
 from bs4 import BeautifulSoup
 import time
@@ -7,7 +6,26 @@ import paho.mqtt.client as mqtt
 import json
 import sys
 import argparse
+import signal
+import logging
 
+#global Variables
+loopEnabled = True
+ESS_HOST = ""
+MARIADB_ENABLED = False
+MARIADB_HOST = ""
+MARIADB_PORT = 0
+MARIADB_USER = ""
+MARIADB_PASS = ""
+MARIADB_DATABASE = ""
+MQTT_ENABLED = False
+MQTT_CLIENT_IDENTIFIER = ""
+MQTT_TOPIC = ""
+MQTT_BROKER_ADDRESS = ""
+MQTT_PORT = 0
+MQTT_QOS = 0
+MQTT_USER = ""
+MQTT_PASS = ""
 
 #Read Table Cell next to a given cell by its content
 def findValue(soup, caption):
@@ -15,7 +33,17 @@ def findValue(soup, caption):
 
 #Read general information
 def readDeviceInfo(session):
-    response = session.get("http://" + ESS_HOST + ":21710/f0")
+    for attempt in range(10):
+        try:
+            logging.info("Fetching device info attempt %s", str(attempt))
+            response = session.get("http://" + ESS_HOST + ":21710/f0")
+        except:
+            time.sleep(10)
+        else:
+            break
+    else:
+        raise ValueError('myess not reachable')
+
     soup = BeautifulSoup(response.text, features="html.parser")
 
     model = findValue(soup, "EMS-Model Name")
@@ -30,8 +58,17 @@ def readDeviceInfo(session):
 
 #Read contents from qhome-stats-page
 def readStats(session):
+    for attempt in range(10):
+        try:
+            logging.info("Fetching statts attempt %s", str(attempt))
+            response = session.get("http://" + ESS_HOST + ":21710/f8")
+        except:
+            time.sleep(10)
+        else:
+            break
+    else:
+        raise ValueError('myess not reachable')
     
-    response = session.get("http://" + ESS_HOST + ":21710/f8")
     soup = BeautifulSoup(response.text, features="html.parser")
 
     battery = float(findValue(soup, "BT_SOC"))
@@ -55,7 +92,7 @@ def calcStats(session):
     battery1, pv11, pv21, demand1, feedin1, consumption1, temp1 = readStats(session)
 
     #wait 31 seconds, qhome avg over 30 seconds
-    time.sleep(31)
+    time.sleep(30)
 
     #Read next stats
     battery2, pv12, pv22, demand2, feedin2, consumption2, temp2 = readStats(session)
@@ -80,23 +117,27 @@ def calcStats(session):
     return batteryavg, pv1avg, pv2avg, demandgridavg, feedingridavg, consumptionavg, tempavg, feedinbatteryavg, demandbatteryavg
 
 def insertIntoMariadb(logdate, battery, pv1, pv2, demand, feedin, consumption, temp):
-    conn  = pymysql.connect(
-                host=MARIADB_HOST, 
-                user=MARIADB_USER, 
-                password=MARIADB_PASS, 
-                database=MARIADB_DATABASE,
-                port = MARIADB_PORT
-                )
-    
-    # Create a cursor object
-    cur  = conn.cursor()
-    pv = pv1 + pv2
+    try:
 
-    query = f"INSERT INTO logs (date, demand, feedin, consumption, battery_percent, pv, pv1, pv2, temperature) VALUES ('{logdate}', '{demand}', '{feedin}', '{consumption}', '{battery}', '{pv}', '{pv1}', '{pv2}', '{temp}')"
-    
-    cur.execute(query)
-    conn.commit()
-    conn.close()
+        conn  = pymysql.connect(
+                    host=MARIADB_HOST, 
+                    user=MARIADB_USER, 
+                    password=MARIADB_PASS, 
+                    database=MARIADB_DATABASE,
+                    port = MARIADB_PORT
+                    )
+        
+        # Create a cursor object
+        cur  = conn.cursor()
+        pv = pv1 + pv2
+
+        query = f"INSERT INTO logs (date, demand, feedin, consumption, battery_percent, pv, pv1, pv2, temperature) VALUES ('{logdate}', '{demand}', '{feedin}', '{consumption}', '{battery}', '{pv}', '{pv1}', '{pv2}', '{temp}')"
+        
+        cur.execute(query)
+        conn.commit()
+        conn.close()
+    except:
+        pass
 
 #push auto discovery info for home assistant
 def pushMqttConfig(mqttclient, model_name, sn, sw_version):
@@ -109,11 +150,20 @@ def pushMqttConfig(mqttclient, model_name, sn, sw_version):
     data["device"]["identifiers"] = [sn]
     data["device"]["sw_version"] = sw_version
 
+    #Status/Alive Message
+    mqttclient.publish(MQTT_TOPIC + "/state", "online", qos=MQTT_QOS, retain=True)
+
+    data["name"] = "Status"
+    data["unique_id"] = MQTT_TOPIC + "_state"
+    data["state_topic"] = MQTT_TOPIC + "/state"
+    mqttclient.publish("homeassistant/sensor/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS, retain=True)
+    
+    #Sensor config
     data["name"] = "Batterie"
     data["unique_id"] = MQTT_TOPIC + "_battery"
     data["device_class"] = "battery"
     data["unit_of_measurement"] = "%"
-    data["state_topic"] = MQTT_TOPIC + "/state"
+    data["state_topic"] = MQTT_TOPIC + "/values"
     data["value_template"] = "{{ value_json.battery}}"
     mqttclient.publish("homeassistant/sensor/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS, retain=True)
     
@@ -161,7 +211,6 @@ def pushMqttConfig(mqttclient, model_name, sn, sw_version):
     data["unique_id"] = MQTT_TOPIC + "_temperature"
     data["device_class"] = "temperature"
     data["unit_of_measurement"] = "°C"
-    data["state_topic"] = MQTT_TOPIC + "/state"
     data["value_template"] = "{{ value_json.temperature}}"
     mqttclient.publish("homeassistant/sensor/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS, retain=True)
 
@@ -179,9 +228,27 @@ def pushMqttStats(mqttclient, logdate, battery, pv1, pv2, demandgrid, feedingrid
     data["demandbattery"] = round(demandbattery, 3)
     data["temperature"] = round(temp, 1)    
     
-    mqttclient.publish(MQTT_TOPIC + "/state", json.dumps(data), qos=MQTT_QOS)
+    mqttclient.publish(MQTT_TOPIC + "/values", json.dumps(data), qos=MQTT_QOS)
 
-def main():
+
+
+def mqttOnConnect(client, userdata, flags, rc):
+    if rc==0:
+        client.connected_flag = True
+        logging.info('MQTT connected')
+    else:
+        logging.info("Bad connection Returned code=",rc)
+    
+def mqttOnDisconnect(client, userdata, rc):
+    client.connected_flag = False
+    client.loop_stop()
+
+def signal_handler(signal, frame):
+    global loopEnabled
+    print("Got quit signal, cleaning up...")
+    loopEnabled = False
+
+def parseArguments():
     global ESS_HOST
     global MARIADB_ENABLED
     global MARIADB_HOST
@@ -197,7 +264,6 @@ def main():
     global MQTT_QOS
     global MQTT_USER
     global MQTT_PASS
-    global MQTT_FORCE_CONFIG_BROADCAST
 
     parser = argparse.ArgumentParser(
             description="Reads stats from Samsung AIO ESS 5.5 web inteface and push to Database and/or MQTT", 
@@ -223,8 +289,7 @@ def main():
     group.add_argument("--mqtt_user",              help="Username for your mqtt broker", metavar='username')
     group.add_argument("--mqtt_pass",              help="Password for your mqtt broker", metavar='password')
     group.add_argument("--mqtt_qos",               type=int, choices=[0, 1], default=0, help="QoS of your messages [0/1]", metavar='qos-level')
-    group.add_argument("--mqtt_force_config_broadcast", default=False, help="Force the MQTT sensor configuration to be transmitted at startup instead of only on the hour ", action="store_true")
-    
+   
     args = parser.parse_args()
 
     ESS_HOST                    = args.ess_host
@@ -242,50 +307,81 @@ def main():
     MQTT_USER                   = args.mqtt_user
     MQTT_PASS                   = args.mqtt_pass
     MQTT_QOS                    = args.mqtt_qos
-    MQTT_FORCE_CONFIG_BROADCAST = args.mqtt_force_config_broadcast
 
+
+def main():
+    logging.basicConfig(filename='qhome_endless.log', encoding='utf-8', level=logging.DEBUG, format='%(asctime)s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+    logging.info('Script started')
+
+    parseArguments()
     if not MARIADB_ENABLED and not MQTT_ENABLED:
         print('DB and MQTT disabled, nothing to do for me')
         sys.exit()
 
-    #log the current time
-    now = time.strftime("%Y-%m-%d %H:%M")
+    #create new session
+    session = requests.Session()
 
-    #creates mqtt client if nessessary 
+    #Signal Handler for interrupting the loop
+    signal.signal(signal.SIGINT, signal_handler)
+
     if MQTT_ENABLED:
+        mqtt.Client.connected_flag = False
+        mqtt.Client.sent_configuration_flag = False
+
         client = mqtt.Client(MQTT_CLIENT_IDENTIFIER)
+        client.on_connect = mqttOnConnect
+        client.on_disconnect = mqttOnDisconnect
+
         if MQTT_USER != "":
             client.username_pw_set(username=MQTT_USER,password=MQTT_PASS)
 
-        try:
-            client.connect(MQTT_BROKER_ADDRESS, MQTT_PORT) 
-        except:
-            print("MQTT connection failed")
-            MQTT_ENABLED = False
+        client.will_set(MQTT_TOPIC + "/state","offline",MQTT_QOS,retain=True)
 
-    if not MARIADB_ENABLED and not MQTT_ENABLED:
-        print('DB disabled and MQTT failed, nothing to do for me anymore')
-        sys.exit()
-
-    #create new session
-    session = requests.Session()        
-
-    #read device info, only at full hour and if MQTT is enabled
-    if MQTT_ENABLED and (time.strftime("%M") == "00" or MQTT_FORCE_CONFIG_BROADCAST):
+        #read device info, only if MQTT is enabled
         model, sw_version, sn = readDeviceInfo(session)
-        pushMqttConfig(client, model, sn, sw_version)
     
-    #calc only if useful
-    if MARIADB_ENABLED or MQTT_ENABLED: batteryavg, pv1avg, pv2avg, demandavg, feedingridavg, consumptiongridavg, tempavg, feedinbatteryavg, demandbatteryavg = calcStats(session)
+    logging.info("start the loop")
 
-    #insert into db
-    if MARIADB_ENABLED: insertIntoMariadb(now, batteryavg, pv1avg, pv2avg, demandavg, feedingridavg, consumptiongridavg, tempavg)
-    
-    #push to mqtt and quits connection
-    if MQTT_ENABLED: 
-        pushMqttStats(client, now, batteryavg, pv1avg, pv2avg, demandavg, feedingridavg, consumptiongridavg, tempavg, feedinbatteryavg, demandbatteryavg)
-        client.disconnect() # disconnect
+    while loopEnabled:
+        logging.info("loop")
 
+         #creates mqtt client if nessessary 
+        if MQTT_ENABLED and not client.connected_flag:
+            client.loop_start()
+            
+            try:
+                client.connect(MQTT_BROKER_ADDRESS, MQTT_PORT) 
+            except:
+                #if connection was not successful, try it in next loop again
+                logging.info("connection was not successful, try it in next loop again")
+                pass
+
+        #log the current time
+        now = time.strftime("%Y-%m-%d %H:%M")
+        
+        #calc only if useful
+        if MARIADB_ENABLED or MQTT_ENABLED: 
+            batteryavg, pv1avg, pv2avg, demandavg, feedingridavg, consumptiongridavg, tempavg, feedinbatteryavg, demandbatteryavg = calcStats(session)
+
+        #insert into db
+        if MARIADB_ENABLED: 
+            insertIntoMariadb(now, batteryavg, pv1avg, pv2avg, demandavg, feedingridavg, consumptiongridavg, tempavg)
+
+        #push to mqtt and quits connection
+        if MQTT_ENABLED and client.connected_flag: 
+            if not client.sent_configuration_flag:
+                pushMqttConfig(client, model, sn, sw_version)
+                client.sent_configuration_flag = True
+
+            pushMqttStats(client, now, batteryavg, pv1avg, pv2avg, demandavg, feedingridavg, consumptiongridavg, tempavg, feedinbatteryavg, demandbatteryavg)
+        
+        time.sleep(30.0 - time.time() % 30.0)
+
+    #send last message
+    client.publish(MQTT_TOPIC + "/state", "offline", qos=MQTT_QOS, retain=True)
+    client.loop_stop()  
+    client.disconnect() 
 
 if __name__ == "__main__":
    main()
+
