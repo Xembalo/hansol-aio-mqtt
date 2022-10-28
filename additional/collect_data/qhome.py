@@ -9,6 +9,8 @@ import argparse
 import signal
 import logging
 
+from errorcodes import errorcodes
+
 #global Variables
 loopEnabled = True
 ESS_HOST = ""
@@ -30,6 +32,9 @@ MQTT_PASS = ""
 #Read Table Cell next to a given cell by its content
 def findValue(soup, caption):
     return soup.find(string=caption).parent.next_sibling.contents[0].strip()
+
+def findErrors(soup):
+    return soup.find(string=" Error Code String ").parent.parent.next_sibling.next_sibling.contents[0].contents[0].strip().lstrip("|").rstrip("$")
 
 #Read general information
 def readDeviceInfo(session):
@@ -57,7 +62,7 @@ def readDeviceInfo(session):
     return model, sw_version, sn
 
 #Read contents from qhome-stats-page
-def readStats(session):
+def readStats(session, with_errors):
     for attempt in range(10):
         try:
             logging.info("Fetching statts attempt %s", str(attempt))
@@ -85,17 +90,32 @@ def readStats(session):
         demand = 0
         feedin = grid * -1
 
-    return battery, pv1, pv2, demand, feedin, load, temp
+    #Evaluate Errors only once
+    if with_errors:
+        errcode = findErrors(soup)
+        if errcode != "":
+            if errcode in errorcodes:
+                err = errorcodes[errcode]
+                err["code"] = errcode
+                err["state"] = "ON"
+            else:
+                err = {"category":"WARNUNG","title":"UNBEKANNTER FEHLER","action":"Unbekannter Fehler","code":errcode,"state":"ON"}
+        else:
+            err = {"state":"OFF"}
+        
+        return battery, pv1, pv2, demand, feedin, load, temp, err
+    else:
+        return battery, pv1, pv2, demand, feedin, load, temp  
 
 def calcStats(session):
     #Read values from stat page
-    battery1, pv11, pv21, demand1, feedin1, consumption1, temp1 = readStats(session)
+    battery1, pv11, pv21, demand1, feedin1, consumption1, temp1, err = readStats(session, True)
 
     #wait 31 seconds, qhome avg over 30 seconds
     time.sleep(30)
 
     #Read next stats
-    battery2, pv12, pv22, demand2, feedin2, consumption2, temp2 = readStats(session)
+    battery2, pv12, pv22, demand2, feedin2, consumption2, temp2 = readStats(session, False)
 
     #calc avg values
     batteryavg = (battery1 + battery2)/2
@@ -114,7 +134,7 @@ def calcStats(session):
         feedinbatteryavg = 0
         demandbatteryavg = consumptionavg + feedingridavg - pv1avg - pv2avg - demandgridavg
     
-    return batteryavg, pv1avg, pv2avg, demandgridavg, feedingridavg, consumptionavg, tempavg, feedinbatteryavg, demandbatteryavg
+    return batteryavg, pv1avg, pv2avg, demandgridavg, feedingridavg, consumptionavg, tempavg, feedinbatteryavg, demandbatteryavg, err
 
 def insertIntoMariadb(logdate, battery, pv1, pv2, demand, feedin, consumption, temp):
     try:
@@ -142,79 +162,136 @@ def insertIntoMariadb(logdate, battery, pv1, pv2, demand, feedin, consumption, t
 #push auto discovery info for home assistant
 def pushMqttConfig(mqttclient, model_name, sn, sw_version):
     
-    data = {}
-    data["device"] = {}
-    data["device"]["manufacturer"] = "Samsung"
-    data["device"]["model"] = model_name
-    data["device"]["name"] = "ESS 5.5 AiO"
-    data["device"]["identifiers"] = [sn]
-    data["device"]["sw_version"] = sw_version
+    #Device Identifiers
+    device = {}
+    device["manufacturer"] = "Samsung"
+    device["model"] = model_name
+    device["name"] = "ESS 5.5 AiO"
+    device["identifiers"] = [sn]
+    device["sw_version"] = sw_version
 
     #Status/Alive Message
     mqttclient.publish(MQTT_TOPIC + "/state", "online", qos=MQTT_QOS, retain=True)
 
+    data = {}
+    data["device"] = device
     data["name"] = "Status"
     data["unique_id"] = MQTT_TOPIC + "_state"
     data["state_topic"] = MQTT_TOPIC + "/state"
-    mqttclient.publish("homeassistant/sensor/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS, retain=True)
+    mqttclient.publish("homeassistant/sensor/" + MQTT_TOPIC + "/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS, retain=True)
     
     #Sensor config
+    data = {}
+    data["device"] = device
     data["name"] = "Batterie"
     data["unique_id"] = MQTT_TOPIC + "_battery"
     data["device_class"] = "battery"
     data["unit_of_measurement"] = "%"
     data["state_topic"] = MQTT_TOPIC + "/values"
-    data["value_template"] = "{{ value_json.battery}}"
-    mqttclient.publish("homeassistant/sensor/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS, retain=True)
+    data["value_template"] = "{{ value_json.battery }}"
+    mqttclient.publish("homeassistant/sensor/" + MQTT_TOPIC + "/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS, retain=True)
     
+    data = {}
+    data["device"] = device
     data["name"] = "Photovoltaik 1"
     data["unique_id"] = MQTT_TOPIC + "_pv1"
     data["device_class"] = "energy"
     data["state_class"] = "measurement"
     data["unit_of_measurement"] = "kWh"
+    data["state_topic"] = MQTT_TOPIC + "/values"
     data["icon"] = "mdi:solar-power"
-    data["value_template"] = "{{ value_json.pv1}}"
-    mqttclient.publish("homeassistant/sensor/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS, retain=True)
+    data["value_template"] = "{{ value_json.pv1 }}"
+    mqttclient.publish("homeassistant/sensor/" + MQTT_TOPIC + "/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS, retain=True)
 
+    #overide some values and republish
     data["name"] = "Photovoltaik 2"
     data["unique_id"] = MQTT_TOPIC + "_pv2"
-    data["value_template"] = "{{ value_json.pv2}}"
-    mqttclient.publish("homeassistant/sensor/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS, retain=True)
+    data["value_template"] = "{{ value_json.pv2 }}"
+    mqttclient.publish("homeassistant/sensor/" + MQTT_TOPIC + "/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS, retain=True)
 
+    data = {}
+    data["device"] = device
     data["name"] = "Entnahme vom Netz"
     data["unique_id"] = MQTT_TOPIC + "_demand_grid"
-    del data['icon']
-    data["value_template"] = "{{ value_json.demandgrid}}"
-    mqttclient.publish("homeassistant/sensor/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS, retain=True)
+    data["device_class"] = "energy"
+    data["state_class"] = "measurement"
+    data["unit_of_measurement"] = "kWh"
+    data["state_topic"] = MQTT_TOPIC + "/values"
+    data["value_template"] = "{{ value_json.demandgrid }}"
+    mqttclient.publish("homeassistant/sensor/" + MQTT_TOPIC + "/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS, retain=True)
 
+    #overide some values and republish
     data["name"] = "Einspeisung ins Netz"
     data["unique_id"] = MQTT_TOPIC + "_feedin_grid"
-    data["value_template"] = "{{ value_json.feedingrid}}"
-    mqttclient.publish("homeassistant/sensor/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS, retain=True)
+    data["value_template"] = "{{ value_json.feedingrid }}"
+    mqttclient.publish("homeassistant/sensor/" + MQTT_TOPIC + "/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS, retain=True)
 
+    #overide some values and republish
     data["name"] = "Hausverbrauch"
     data["unique_id"] = MQTT_TOPIC + "_consumption"
-    data["value_template"] = "{{ value_json.consumption}}"
-    mqttclient.publish("homeassistant/sensor/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS, retain=True)
+    data["value_template"] = "{{ value_json.consumption }}"
+    mqttclient.publish("homeassistant/sensor/" + MQTT_TOPIC + "/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS, retain=True)
    
+    #overide some values and republish
     data["name"] = "Entnahme aus Batterie"
     data["unique_id"] = MQTT_TOPIC + "_demand_battery"
-    data["value_template"] = "{{ value_json.demandbattery}}"
-    mqttclient.publish("homeassistant/sensor/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS, retain=True)
+    data["value_template"] = "{{ value_json.demandbattery }}"
+    mqttclient.publish("homeassistant/sensor/" + MQTT_TOPIC + "/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS, retain=True)
 
+    #overide some values and republish
     data["name"] = "Einspeisung in Batterie"
     data["unique_id"] = MQTT_TOPIC + "_feedin_battery"
-    data["value_template"] = "{{ value_json.feedinbattery}}"
-    mqttclient.publish("homeassistant/sensor/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS, retain=True)
+    data["value_template"] = "{{ value_json.feedinbattery }}"
+    mqttclient.publish("homeassistant/sensor/" + MQTT_TOPIC + "/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS, retain=True)
 
+    data = {}
+    data["device"] = device
     data["name"] = "Temperatur"
     data["unique_id"] = MQTT_TOPIC + "_temperature"
     data["device_class"] = "temperature"
+    data["state_class"] = "measurement"
     data["unit_of_measurement"] = "°C"
-    data["value_template"] = "{{ value_json.temperature}}"
-    mqttclient.publish("homeassistant/sensor/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS, retain=True)
+    data["state_topic"] = MQTT_TOPIC + "/values"
+    data["value_template"] = "{{ value_json.temperature }}"
+    mqttclient.publish("homeassistant/sensor/" + MQTT_TOPIC + "/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS, retain=True)
 
-def pushMqttStats(mqttclient, logdate, battery, pv1, pv2, demandgrid, feedingrid, consumption, temp, feedinbattery, demandbattery):  
+    #Errorstate
+    data = {}
+    data["device"] = device
+    data["name"] = "Fehler"
+    data["unique_id"] = MQTT_TOPIC + "_error"
+    data["device_class"] = "problem"
+    data["state_topic"] = MQTT_TOPIC + "/errors"
+    data["value_template"] = "{{ value_json.state }}"
+    mqttclient.publish("homeassistant/binary_sensor/" + MQTT_TOPIC + "/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS, retain=True)
+
+    data = {}
+    data["device"] = device
+    data["name"] = "Fehlercode"
+    data["unique_id"] = MQTT_TOPIC + "_errorcode"
+    data["state_topic"] = MQTT_TOPIC + "/errors"
+    data["value_template"] = "{{ value_json.code }}"
+    mqttclient.publish("homeassistant/sensor/" + MQTT_TOPIC + "/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS, retain=True)
+
+    #overide some values and republish
+    data["name"] = "Fehlerkategorie"
+    data["unique_id"] = MQTT_TOPIC + "_errorcategory"
+    data["value_template"] = "{{ value_json.category }}"
+    mqttclient.publish("homeassistant/sensor/" + MQTT_TOPIC + "/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS, retain=True)
+
+    #overide some values and republish
+    data["name"] = "Fehlertitel"
+    data["unique_id"] = MQTT_TOPIC + "_errortitle"
+    data["value_template"] = "{{ value_json.title }}"
+    mqttclient.publish("homeassistant/sensor/" + MQTT_TOPIC + "/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS, retain=True)
+
+    #overide some values and republish
+    data["name"] = "Fehleraktion"
+    data["unique_id"] = MQTT_TOPIC + "_erroraction"
+    data["value_template"] = "{{ value_json.action }}"
+    mqttclient.publish("homeassistant/sensor/" + MQTT_TOPIC + "/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS, retain=True)
+
+def pushMqttStats(mqttclient, logdate, battery, pv1, pv2, demandgrid, feedingrid, consumption, temp, feedinbattery, demandbattery, err):  
     data = {}
     data["date"] = logdate
     data["battery"] = battery
@@ -226,11 +303,10 @@ def pushMqttStats(mqttclient, logdate, battery, pv1, pv2, demandgrid, feedingrid
     data["consumption"] = round(consumption, 3)
     data["feedinbattery"] = round(feedinbattery, 3)
     data["demandbattery"] = round(demandbattery, 3)
-    data["temperature"] = round(temp, 1)    
+    data["temperature"] = round(temp, 1)
     
     mqttclient.publish(MQTT_TOPIC + "/values", json.dumps(data), qos=MQTT_QOS)
-
-
+    mqttclient.publish(MQTT_TOPIC + "/errors", json.dumps(err), qos=MQTT_QOS)
 
 def mqttOnConnect(client, userdata, flags, rc):
     if rc==0:
@@ -361,7 +437,7 @@ def main():
         
         #calc only if useful
         if MARIADB_ENABLED or MQTT_ENABLED: 
-            batteryavg, pv1avg, pv2avg, demandavg, feedingridavg, consumptiongridavg, tempavg, feedinbatteryavg, demandbatteryavg = calcStats(session)
+            batteryavg, pv1avg, pv2avg, demandavg, feedingridavg, consumptiongridavg, tempavg, feedinbatteryavg, demandbatteryavg, err = calcStats(session)
 
         #insert into db
         if MARIADB_ENABLED: 
@@ -373,7 +449,7 @@ def main():
                 pushMqttConfig(client, model, sn, sw_version)
                 client.sent_configuration_flag = True
 
-            pushMqttStats(client, now, batteryavg, pv1avg, pv2avg, demandavg, feedingridavg, consumptiongridavg, tempavg, feedinbatteryavg, demandbatteryavg)
+            pushMqttStats(client, now, batteryavg, pv1avg, pv2avg, demandavg, feedingridavg, consumptiongridavg, tempavg, feedinbatteryavg, demandbatteryavg, err)
         
         time.sleep(30.0 - time.time() % 30.0)
 
