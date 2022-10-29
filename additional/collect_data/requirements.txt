@@ -1,0 +1,4 @@
+paho-mqtt
+PyMySQL
+BeautifulSoup4
+requests
