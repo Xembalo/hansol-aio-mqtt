@@ -21,10 +21,10 @@ To begin using this template, choose one of the following options to get started
 
 ## Preparation and Installation
 
-The Hansol AIO is accessible within your local network and 
-The Hansol AIO device is accessible via the local network and provides diagnostic data. These can be read out cyclically via a bash script.
+The Hansol AIO device is accessible via the local network and provides diagnostic data. These can be read out cyclically via a script.
 In this project there is an example script in the folder `additional/collect_data` which should be executed every minute in a Linux environment (Raspberry Pi, Synology NAS or similar) via crontab. 
 The results are written into a MySQL/MariaDB with a time stamp and can then be read or further processed.
+You can also use the phyton script stand alone or in docker enviroment to collect data and push it to MariaDB or MQTT/Home Assistant.
 
 The script to create the database tables is located in the folder `additional/database`
 
@@ -53,6 +53,6 @@ Special thanks to the users from [Photovoltaikforum.com](www.photovoltaikforum.c
 
 All named trademarks and productnames are the property of their respective owners.
 
-Copyright 2019 Sebastian Wienecke. Code released under the [MIT](https://github.com/Xembalo/hansol-aoi-dashboard/LICENSE) license.
+Copyright 2019-2022 Sebastian Wienecke. Code released under the [MIT](https://github.com/Xembalo/hansol-aoi-dashboard/LICENSE) license.
 
 
