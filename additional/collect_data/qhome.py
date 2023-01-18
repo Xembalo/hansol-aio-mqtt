@@ -113,7 +113,7 @@ def calcStats(session):
     #Read values from stat page
     battery1, pv11, pv21, demand1, feedin1, consumption1, temp1, err = readStats(session, True)
 
-    #wait 31 seconds, qhome avg over 30 seconds
+    #wait 30 seconds, qhome avg over 30 seconds
     time.sleep(30)
 
     #Read next stats
@@ -122,11 +122,11 @@ def calcStats(session):
     #calc avg values
     batteryavg = (battery1 + battery2)/2
     tempavg = (temp1 + temp2)/2
-    pv1avg = (pv11 + pv12)/2000
-    pv2avg = (pv21 + pv22)/2000
-    demandgridavg = (demand1 + demand2)/2000
-    feedingridavg = (feedin1 + feedin2)/2000
-    consumptionavg = (consumption1 + consumption2)/2000
+    pv1avg = ((pv11 + pv12)/2000)/60 #divide by 60, 'cause we fetch every minute,
+    pv2avg = ((pv21 + pv22)/2000)/60 
+    demandgridavg = ((demand1 + demand2)/2000)/60
+    feedingridavg = ((feedin1 + feedin2)/2000)/60
+    consumptionavg = ((consumption1 + consumption2)/2000)/60
     
     #calc battery feedin or demand
     if pv1avg + pv2avg + demandgridavg > feedingridavg + consumptionavg:
@@ -297,14 +297,14 @@ def pushMqttStats(mqttclient, logdate, battery, pv1, pv2, demandgrid, feedingrid
     data = {}
     data["date"] = logdate
     data["battery"] = battery
-    data["pv"] = round(pv1 + pv2, 3)
-    data["pv1"] = round(pv1, 3)
-    data["pv2"] = round(pv2, 3)
-    data["demandgrid"] = round(demandgrid, 3)
-    data["feedingrid"] = round(feedingrid, 3)
-    data["consumption"] = round(consumption, 3)
-    data["feedinbattery"] = round(feedinbattery, 3)
-    data["demandbattery"] = round(demandbattery, 3)
+    data["pv"] = round(pv1 + pv2, 5)
+    data["pv1"] = round(pv1, 5)
+    data["pv2"] = round(pv2, 5)
+    data["demandgrid"] = round(demandgrid, 5)
+    data["feedingrid"] = round(feedingrid, 5)
+    data["consumption"] = round(consumption, 5)
+    data["feedinbattery"] = round(feedinbattery, 5)
+    data["demandbattery"] = round(demandbattery, 5)
     data["temperature"] = round(temp, 1)
     
     mqttclient.publish(MQTT_TOPIC + "/values", json.dumps(data), qos=MQTT_QOS)
