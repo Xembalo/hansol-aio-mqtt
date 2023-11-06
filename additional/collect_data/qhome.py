@@ -31,6 +31,9 @@ MQTT_QOS = 0
 MQTT_USER = ""
 MQTT_PASS = ""
 
+#Props for QHome-Device
+DEVICE = {}
+
 #Read Table Cell next to a given cell by its content
 def findValue(soup, caption):
     return soup.find(string=caption).parent.next_sibling.contents[0].strip()
@@ -40,6 +43,8 @@ def findErrors(soup):
 
 #Read general information
 def readDeviceInfo(session):
+    global DEVICE
+
     for attempt in range(10):
         try:
             logging.info("Fetching device info attempt %s", str(attempt))
@@ -53,15 +58,16 @@ def readDeviceInfo(session):
 
     soup = BeautifulSoup(response.text, features="html.parser")
 
-    model = findValue(soup, "EMS-Model Name")
-    sw_version = findValue(soup, "EMS Version")
+    DEVICE["manufacturer"] = "Samsung"
+    DEVICE["model"] = findValue(soup, "EMS-Model Name")
+    DEVICE["name"] = "ESS 5.5 AiO"
+    DEVICE["sw_version"] = findValue(soup, "EMS Version")
 
     response = session.get("http://" + ESS_HOST + ":21710/f8")
     soup = BeautifulSoup(response.text, features="html.parser")
 
     sn = findValue(soup, "S-Number")
-
-    return model, sw_version, sn
+    DEVICE["identifiers"] = [sn]
 
 #Read contents from qhome-stats-page
 def readStats(session, with_errors):
@@ -162,21 +168,14 @@ def insertIntoMariadb(logdate, battery, pv1, pv2, demand, feedin, consumption, t
         pass
 
 #push auto discovery info for home assistant
-def pushMqttConfig(mqttclient, model_name, sn, sw_version):
+def pushMqttConfig(mqttclient):
+    logging.info("pushing online message and auto discovery info for home assistant")
     
-    #Device Identifiers
-    device = {}
-    device["manufacturer"] = "Samsung"
-    device["model"] = model_name
-    device["name"] = "ESS 5.5 AiO"
-    device["identifiers"] = [sn]
-    device["sw_version"] = sw_version
-
     #Status/Alive Message
     mqttclient.publish(MQTT_TOPIC + "/state", "online", qos=MQTT_QOS, retain=True)
 
     data = {}
-    data["device"] = device
+    data["device"] = DEVICE
     data["name"] = "Status"
     data["unique_id"] = MQTT_TOPIC + "_state"
     data["state_topic"] = MQTT_TOPIC + "/state"
@@ -184,7 +183,7 @@ def pushMqttConfig(mqttclient, model_name, sn, sw_version):
     
     #Sensor config
     data = {}
-    data["device"] = device
+    data["device"] = DEVICE
     data["name"] = "Batterie"
     data["unique_id"] = MQTT_TOPIC + "_battery"
     data["device_class"] = "battery"
@@ -194,7 +193,7 @@ def pushMqttConfig(mqttclient, model_name, sn, sw_version):
     mqttclient.publish("homeassistant/sensor/" + MQTT_TOPIC + "/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS, retain=True)
     
     data = {}
-    data["device"] = device
+    data["device"] = DEVICE
     data["name"] = "Photovoltaik 1"
     data["unique_id"] = MQTT_TOPIC + "_pv1"
     data["device_class"] = "energy"
@@ -212,7 +211,7 @@ def pushMqttConfig(mqttclient, model_name, sn, sw_version):
     mqttclient.publish("homeassistant/sensor/" + MQTT_TOPIC + "/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS, retain=True)
 
     data = {}
-    data["device"] = device
+    data["device"] = DEVICE
     data["name"] = "Entnahme vom Netz"
     data["unique_id"] = MQTT_TOPIC + "_demand_grid"
     data["device_class"] = "energy"
@@ -247,7 +246,7 @@ def pushMqttConfig(mqttclient, model_name, sn, sw_version):
     mqttclient.publish("homeassistant/sensor/" + MQTT_TOPIC + "/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS, retain=True)
 
     data = {}
-    data["device"] = device
+    data["device"] = DEVICE
     data["name"] = "Temperatur"
     data["unique_id"] = MQTT_TOPIC + "_temperature"
     data["device_class"] = "temperature"
@@ -259,7 +258,7 @@ def pushMqttConfig(mqttclient, model_name, sn, sw_version):
 
     #Errorstate
     data = {}
-    data["device"] = device
+    data["device"] = DEVICE
     data["name"] = "Fehler"
     data["unique_id"] = MQTT_TOPIC + "_error"
     data["device_class"] = "problem"
@@ -268,7 +267,7 @@ def pushMqttConfig(mqttclient, model_name, sn, sw_version):
     mqttclient.publish("homeassistant/binary_sensor/" + MQTT_TOPIC + "/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS, retain=True)
 
     data = {}
-    data["device"] = device
+    data["device"] = DEVICE
     data["name"] = "Fehlercode"
     data["unique_id"] = MQTT_TOPIC + "_errorcode"
     data["state_topic"] = MQTT_TOPIC + "/errors"
@@ -312,16 +311,17 @@ def pushMqttStats(mqttclient, logdate, battery, pv1, pv2, demandgrid, feedingrid
 
 def mqttOnConnect(client, userdata, flags, rc):
     if rc==0:
-        client.connected_flag = True
         logging.info('MQTT connected')
+        client.connected_flag = True
+        pushMqttConfig(client)
     else:
         logging.info("Bad connection Returned code=",rc)
     
 def mqttOnDisconnect(client, userdata, rc):
+    logging.info("MQTT disconnected")
     client.connected_flag = False
-    client.loop_stop()
 
-def signal_handler(signal, frame):
+def signalHandler(signal, frame):
     global loopEnabled
     print("Got quit signal, cleaning up...")
     loopEnabled = False
@@ -400,11 +400,10 @@ def main():
     session = requests.Session()
 
     #Signal Handler for interrupting the loop
-    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGINT, signalHandler)
 
     if MQTT_ENABLED:
         mqtt.Client.connected_flag = False
-        mqtt.Client.sent_configuration_flag = False
 
         client = mqtt.Client(MQTT_CLIENT_IDENTIFIER)
         client.on_connect = mqttOnConnect
@@ -416,23 +415,19 @@ def main():
         client.will_set(MQTT_TOPIC + "/state","offline",MQTT_QOS,retain=True)
 
         #read device info, only if MQTT is enabled
-        model, sw_version, sn = readDeviceInfo(session)
-    
-    logging.info("start the loop")
+        readDeviceInfo(session)
 
-    while loopEnabled:
-        logging.info("loop")
-
-         #creates mqtt client if nessessary 
-        if MQTT_ENABLED and not client.connected_flag:
+        try:
+            logging.info("try to connect")
+            client.connect(MQTT_BROKER_ADDRESS, MQTT_PORT)
+            logging.info("starting the MQTT background loop")  
             client.loop_start()
-            
-            try:
-                client.connect(MQTT_BROKER_ADDRESS, MQTT_PORT) 
-            except:
-                #if connection was not successful, try it in next loop again
-                logging.info("connection was not successful, try it in next loop again")
-                pass
+        except:
+            #if connection was not successful, try it in next loop again
+            logging.info("connection was not successful, try it in next loop again")
+    
+    while loopEnabled:
+        logging.info("main loop")
 
         #log the current time
         now = time.strftime("%Y-%m-%d %H:%M")
@@ -447,12 +442,9 @@ def main():
 
         #push to mqtt and quits connection
         if MQTT_ENABLED and client.connected_flag: 
-            if not client.sent_configuration_flag:
-                pushMqttConfig(client, model, sn, sw_version)
-                client.sent_configuration_flag = True
-
             pushMqttStats(client, now, batteryavg, pv1avg, pv2avg, demandavg, feedingridavg, consumptiongridavg, tempavg, feedinbatteryavg, demandbatteryavg, err)
         
+        #wait another 30 seconds
         time.sleep(30.0 - time.time() % 30.0)
 
     #send last message
