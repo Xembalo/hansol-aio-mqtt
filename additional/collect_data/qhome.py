@@ -10,6 +10,7 @@ import sys
 import argparse
 import signal
 import logging
+import os
 
 from errorcodes import errorcodes
 
@@ -33,6 +34,9 @@ MQTT_PASS = ""
 
 #Props for QHome-Device
 DEVICE = {}
+
+#Name of temporary file storage
+MISSING_INSERTS_FILE_NAME = "missing_inserts.txt"
 
 #Read Table Cell next to a given cell by its content
 def findValue(soup, caption):
@@ -144,9 +148,34 @@ def calcStats(session):
     
     return batteryavg, pv1avg, pv2avg, demandgridavg, feedingridavg, consumptionavg, tempavg, feedinbatteryavg, demandbatteryavg, err
 
-def insertIntoMariadb(logdate, battery, pv1, pv2, demand, feedin, consumption, temp):
-    try:
+def importMissingInsertsIntoMariadb(conn):
+    success = True
 
+    if os.path.exists(MISSING_INSERTS_FILE_NAME):
+        with open(MISSING_INSERTS_FILE_NAME) as fp:
+            for line in fp:
+                try:
+                    cur = conn.cursor()
+                    cur.execute(line.rstrip().rstrip(";"))
+                except:
+                    success = False
+            
+            if success:
+                conn.commit()
+        
+        if success:
+            os.remove(MISSING_INSERTS_FILE_NAME)
+
+def logMissingInsertToFile(query):
+    with open(MISSING_INSERTS_FILE_NAME, "a") as f:
+        f.write(query + ";\n")
+
+def insertIntoMariadb(logdate, battery, pv1, pv2, demand, feedin, consumption, temp):
+    pv = pv1 + pv2
+    query = f"INSERT INTO logs (date, demand, feedin, consumption, battery_percent, pv, pv1, pv2, temperature) VALUES ('{logdate}', '{demand}', '{feedin}', '{consumption}', '{battery}', '{pv}', '{pv1}', '{pv2}', '{temp}')"
+    
+    success = False
+    try:
         conn  = pymysql.connect(
                     host=MARIADB_HOST, 
                     user=MARIADB_USER, 
@@ -154,15 +183,19 @@ def insertIntoMariadb(logdate, battery, pv1, pv2, demand, feedin, consumption, t
                     database=MARIADB_DATABASE,
                     port = MARIADB_PORT
                     )
-        
-        # Create a cursor object
         cur  = conn.cursor()
-        pv = pv1 + pv2
-
-        query = f"INSERT INTO logs (date, demand, feedin, consumption, battery_percent, pv, pv1, pv2, temperature) VALUES ('{logdate}', '{demand}', '{feedin}', '{consumption}', '{battery}', '{pv}', '{pv1}', '{pv2}', '{temp}')"
         
         cur.execute(query)
         conn.commit()
+
+        success = True
+    except pymysql.Error as err:
+        logMissingInsertToFile(query)
+        success = False
+    
+    if success:
+        importMissingInsertsIntoMariadb(conn)
+    try:
         conn.close()
     except:
         pass
