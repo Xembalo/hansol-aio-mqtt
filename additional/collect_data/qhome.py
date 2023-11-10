@@ -11,6 +11,7 @@ import argparse
 import signal
 import logging
 import os
+import csv
 
 from errorcodes import errorcodes
 
@@ -148,15 +149,20 @@ def calcStats(session):
     
     return batteryavg, pv1avg, pv2avg, demandgridavg, feedingridavg, consumptionavg, tempavg, feedinbatteryavg, demandbatteryavg, err
 
+def generateInsert(values):
+    return f"INSERT INTO logs (date, demand, feedin, consumption, battery_percent, pv, pv1, pv2, temperature) VALUES (str_to_date('{values[0]}', '%Y-%m-%d %H:%i:%s'), {values[1]}, {values[2]}, {values[3]}, {values[4]}, {values[5]}, {values[6]}, {values[7]}, {values[8]})"
+
 def importMissingInsertsIntoMariadb(conn):
     success = True
 
     if os.path.exists(MISSING_INSERTS_FILE_NAME):
-        with open(MISSING_INSERTS_FILE_NAME) as fp:
-            for line in fp:
+        with open(MISSING_INSERTS_FILE_NAME) as f:
+            reader = csv.reader(f)
+            for line in reader:
                 try:
                     cur = conn.cursor()
-                    cur.execute(line.rstrip().rstrip(";"))
+                    query = generateInsert(tuple(line))
+                    cur.execute(query)
                 except:
                     success = False
             
@@ -166,14 +172,16 @@ def importMissingInsertsIntoMariadb(conn):
         if success:
             os.remove(MISSING_INSERTS_FILE_NAME)
 
-def logMissingInsertToFile(query):
-    with open(MISSING_INSERTS_FILE_NAME, "a") as f:
-        f.write(query + ";\n")
+def logMissingInsertToFile(csv_values):
+    with open(MISSING_INSERTS_FILE_NAME, 'a') as f:
+        file_writer = csv.writer(f, lineterminator='\n')
+        file_writer.writerow(csv_values)
 
 def insertIntoMariadb(logdate, battery, pv1, pv2, demand, feedin, consumption, temp):
     pv = pv1 + pv2
-    query = f"INSERT INTO logs (date, demand, feedin, consumption, battery_percent, pv, pv1, pv2, temperature) VALUES ('{logdate}', '{demand}', '{feedin}', '{consumption}', '{battery}', '{pv}', '{pv1}', '{pv2}', '{temp}')"
-    
+    csv_values = (logdate, demand, feedin, consumption, battery, pv, pv1, pv2, temp)
+    query = generateInsert(csv_values)
+
     success = False
     try:
         conn  = pymysql.connect(
@@ -190,7 +198,7 @@ def insertIntoMariadb(logdate, battery, pv1, pv2, demand, feedin, consumption, t
 
         success = True
     except pymysql.Error as err:
-        logMissingInsertToFile(query)
+        logMissingInsertToFile(csv_values)
         success = False
     
     if success:
