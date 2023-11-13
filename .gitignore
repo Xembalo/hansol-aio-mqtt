@@ -1,3 +1,2 @@
-includes/config.inc.php
 __pycache__
-additional/collect_data/build.sh
+docker/build.sh

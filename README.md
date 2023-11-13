@@ -1,51 +1,139 @@
-# Hansol AIO Dashboard
+# Hansol/Samsung AIO MQTT
 
-Hansol AIO Dashboard is an open source dashboard for displaying and monitoring logged data from [Hansol AIO Photovoltaik devices](https://myess.hansoltechnics.com/prod/prod.do#1). 
+Hansol AIO MQTT is a Python script for reading out the photovoltaic battery storage from Samsung or Hansol of the All-in-One series. [Hansol AIO photovoltaic devices](https://myess.hansoltechnics.com/prod/prod.do#1). 
 
-It's based on [SB Admin 2](https://startbootstrap.com/template-overviews/sb-admin-2/), an open source admin dashboard theme for [Bootstrap](http://getbootstrap.com/) created by [Start Bootstrap](http://startbootstrap.com/).
+The maintenance page integrated there is read out twice a minute and the values determined for the battery level, house consumption, feed-in, grid withdrawal and PV production are made available for HomeAssistant via MQTT. The values can also be written directly to a MariaDB/MySQL database.
 
-## Preview
-
-[![SB Admin 2 Preview](https://startbootstrap.com/assets/img/screenshots/themes/sb-admin-2.png)](https://blackrockdigital.github.io/startbootstrap-sb-admin-2/)
-
-## Status
-
-[![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/BlackrockDigital/startbootstrap-sb-admin-2/master/LICENSE)
+I generally wrote the script for myself, as I want to evaluate the data over days, weeks and months. At the same time, however, I also wanted to use the energy display in [Home Assistant](https://www.home-assistant.io), so I decided to transfer the values via MQTT.
 
 ## Download
 
-To begin using this template, choose one of the following options to get started:
+To use the script, select one of the following options to get started:
 
--   Clone the repo: `git clone https://github.com/Xembalo/hansol-aio-dashboard.git`
--   [Fork, Clone, or Download on GitHub](https://github.com/Xembalo/hansol-aio-dashboard)
+- Clone the repository: `git clone https://github.com/Xembalo/hansol-aio-mqtt.git`
+- [Fork, Clone, or Download on GitHub](https://github.com/Xembalo/hansol-aio-dashboard)
 
-## Preparation and Installation
+## Preparation and installation
 
-The Hansol AIO device is accessible via the local network and provides diagnostic data. These can be read out cyclically via a script.
-In this project there is an example script in the folder `additional/collect_data` which should be executed every minute in a Linux environment (Raspberry Pi, Synology NAS or similar) via crontab. 
-The results are written into a MySQL/MariaDB with a time stamp and can then be read or further processed.
-You can also use the phyton script stand alone or in docker enviroment to collect data and push it to MariaDB or MQTT/Home Assistant.
+If you want to use all functions, you need the following:
 
-The script to create the database tables is located in the folder `additional/database`
+- a Home Assistant installation
+- a MariaDB/MySQL database
+- a MQTT broker, for example [Mosquitto](https://mosquitto.org/)
+- a runtime environment with Python3, which is available 24/7 in the local network.
 
-## Usage
+### Setting up the database
 
-Download or clone the repo to a PHP and MySQL/MariaDB enabled webserver of your choice. For database access PDO is used. You need to modify the file `includes\config.inc.php.sample` and rename it to `includes\config.inc.php`. 
+Basically, the script `init_db.sql` can be used to initialize die database. However, the user name and password should still be adjusted.
 
-Navigate your browser of choice to your project, thats it!
+### Setting up the environment (Python)
+
+The script requires Python3. It is best installed in a `venv`. 
+
+```
+cd /path/to/dir/hansol-aio-mqtt
+python3 -m venv .
+source bin/activate
+pip install paho-mqtt PyMySQL BeautifulSoup4 requests
+python3 aio-mqtt.py --help
+```
+
+The possible call parameters are then displayed.
+
+The script can be integrated into systemd for permanent startup. 
+
+### Setting up the environment (Docker)
+
+Alternatively, the script can also be packaged in a Docker image. I run it on a Synology NAS, for example. The necessary files are located in the `docker` subfolder and can be accessed via 
+
+```
+docker build -t username/imagename .
+docker push username/imagename
+```
+
+The script parameters can be specified via environment variables:
+
+```
+docker container run -e ESS_HOST=localhost -e MARIADB_ENABLED=1 -e ... username/imagename
+
+ENV ESS_HOST=
+ENV MARIADB_ENABLED=
+ENV MARIADB_HOST=
+ENV MARIADB_PORT=
+ENV MARIADB_USER=
+ENV MARIADB_PASS=
+ENV MARIADB_DATABASE=
+ENV MQTT_ENABLED=
+ENV MQTT_CLIENT_IDENTIFIER=
+ENV MQTT_TOPIC=
+ENV MQTT_HOST=
+ENV MQTT_PORT=
+ENV MQTT_QOS=
+```
+
+## Integration in Home Assistant
+
+If MQTT integration is already active in Home Assistant, the new device and its sensors will be found directly. Otherwise, the [MQTT integration still needs to be set up](https://www.home-assistant.io/integrations/mqtt).
+
+![Preview of the MQTT view in Home Assistant](docs/ha-device.png)
+
+So that the sensors can be used in the energy dashboard, I had to create my own sensors in the `configuration.yaml` of Home Assistant:
+
+```
+utility_meter:
+  feedin_battery:
+    source: sensor.einspeisung_in_batterie
+    name: QHome Einspeisung in Batterie
+    cycle: daily
+    delta_values: true
+  demand_battery:
+    source: sensor.entnahme_aus_batterie
+    name: QHome Entnahme aus Batterie
+    cycle: daily
+    delta_values: true
+  feedin_grid:
+    source: sensor.einspeisung_ins_netz
+    name: QHome Einspeisung ins Netz
+    cycle: daily
+    delta_values: true
+  demand_grid:
+    source: sensor.entnahme_vom_netz
+    name: QHome Entnahme vom Netz
+    cycle: daily
+    delta_values: true
+  consumptation:
+    source: sensor.hausverbrauch
+    name: QHome Hausverbrauch
+    cycle: daily
+    delta_values: true
+  photovoltaik_left:
+    source: sensor.photovoltaik_1
+    name: QHome Photovoltaik Links
+    cycle: daily
+    delta_values: true
+  photovoltaik_right:
+    source: sensor.photovoltaik_2
+    name: QHome Photovoltaik Rechts
+    cycle: daily
+    delta_values: true
+```
+
+**If anyone knows how to do it without, please let me know!**
+
+These sensors can then be used for the energy dashboard.
+
+![Preview of the energy dashboard in Home Assistant](docs/ha-energy.png)
 
 ## Bugs and Issues
 
-Have a bug or an issue or an idea for further statistics? [Open a new issue](https://github.com/Xembalo/hansol-aio-dashboard/issues) here on GitHub.
+Have a bug or an issue or an idea for further statistics? [Open a new issue](https://github.com/Xembalo/hansol-aio-mqtt/issues) here on GitHub.
 
 ## About
 
 This project was created by and is maintained by **Sebastian Wienecke**.
 
--   <https://twitter.com/xembalo>
--   <https://github.com/Xembalo>
 
-It is based on [SB Admin 2](https://startbootstrap.com/template-overviews/sb-admin-2/) creaded by [David Miller](https://github.com/davidtmiller) and furthermore it is based on the [Bootstrap](http://getbootstrap.com/) framework created by [Mark Otto](https://twitter.com/mdo) and [Jacob Thorton](https://twitter.com/fat) and 
+-   <https://github.com/Xembalo>
 
 Special thanks to the users from [Photovoltaikforum.com](www.photovoltaikforum.com) in particular but not exclusively to user "fsg4u" for his [bash skript](https://www.photovoltaikforum.com/thread/102631-hat-schon-jemand-erfahrung-mit-dem-samsung-sdi-ess/?postID=1758839#post1758839) to collect the data. 
 
@@ -53,6 +141,4 @@ Special thanks to the users from [Photovoltaikforum.com](www.photovoltaikforum.c
 
 All named trademarks and productnames are the property of their respective owners.
 
-Copyright 2019-2022 Sebastian Wienecke. Code released under the [MIT](https://github.com/Xembalo/hansol-aoi-dashboard/LICENSE) license.
-
-
+Copyright 2019-2023 Sebastian Wienecke. Code released under the [MIT](https://github.com/Xembalo/hansol-aoi-dashboard/LICENSE) license.
