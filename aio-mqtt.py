@@ -12,7 +12,8 @@ import signal
 import logging
 import os
 import csv
-
+ 
+from mqtt_homeassistant_utils import HADevice, HASensor, HABinarySensor, HASensorEnergy, HASensorBattery, HASensorTemperature, HADeviceClassBinarySensor
 from errorcodes import errorcodes
 
 #global Variables
@@ -32,9 +33,8 @@ MQTT_PORT = 0
 MQTT_QOS = 0
 MQTT_USER = ""
 MQTT_PASS = ""
+HADEVICE = None
 
-#Props for QHome-Device
-DEVICE = {}
 
 #Name of temporary file storage
 MISSING_INSERTS_FILE_NAME = "missing_inserts.txt"
@@ -48,7 +48,7 @@ def findErrors(soup):
 
 #Read general information
 def readDeviceInfo(session):
-    global DEVICE
+    global HADEVICE
 
     for attempt in range(10):
         try:
@@ -63,16 +63,23 @@ def readDeviceInfo(session):
 
     soup = BeautifulSoup(response.text, features="html.parser")
 
-    DEVICE["manufacturer"] = "Samsung"
-    DEVICE["model"] = findValue(soup, "EMS-Model Name")
-    DEVICE["name"] = "ESS 5.5 AiO"
-    DEVICE["sw_version"] = findValue(soup, "EMS Version")
+    model = findValue(soup, "EMS-Model Name")
+    version = findValue(soup, "EMS Version")
 
     response = session.get("http://" + ESS_HOST + ":21710/f8")
     soup = BeautifulSoup(response.text, features="html.parser")
 
     sn = findValue(soup, "S-Number")
-    DEVICE["identifiers"] = [sn]
+
+    HADEVICE = HADevice(
+        manufacturer="Samsung", 
+        model=model,
+        name="ESS 5.5 AiO",
+        sw_version=version,
+        identifiers=[sn],
+        configuration_url="http://" + ESS_HOST + ":21710"
+    )
+
 
 #Read contents from qhome-stats-page
 def readStats(session, with_errors):
@@ -209,129 +216,165 @@ def insertIntoMariadb(logdate, battery, pv1, pv2, demand, feedin, consumption, t
         pass
 
 #push auto discovery info for home assistant
-def pushMqttConfig(mqttclient):
+def pushMqttConfig(mqttclient: mqtt.Client, device: HADevice):
     logging.info("pushing online message and auto discovery info for home assistant")
     
     #Status/Alive Message
     mqttclient.publish(MQTT_TOPIC + "/state", "online", qos=MQTT_QOS, retain=True)
 
-    data = {}
-    data["device"] = DEVICE
-    data["name"] = "Status"
-    data["unique_id"] = MQTT_TOPIC + "_state"
-    data["state_topic"] = MQTT_TOPIC + "/state"
-    mqttclient.publish("homeassistant/sensor/" + MQTT_TOPIC + "/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS, retain=True)
+    sensor = HASensor(
+        node_id=MQTT_TOPIC,
+        unique_id=MQTT_TOPIC + "_state",
+        name="Status",
+        state_topic=MQTT_TOPIC + "/state",
+        device=device        
+    )
+    sensor.publish(mqttclient,MQTT_QOS)
     
     #Sensor config
-    data = {}
-    data["device"] = DEVICE
-    data["name"] = "Batterie"
-    data["unique_id"] = MQTT_TOPIC + "_battery"
-    data["device_class"] = "battery"
-    data["unit_of_measurement"] = "%"
-    data["state_topic"] = MQTT_TOPIC + "/values"
-    data["value_template"] = "{{ value_json.battery }}"
-    mqttclient.publish("homeassistant/sensor/" + MQTT_TOPIC + "/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS, retain=True)
+    sensor = HASensorBattery(
+        node_id=MQTT_TOPIC,
+        unique_id=MQTT_TOPIC + "_battery",
+        name="Batterie",
+        state_topic=MQTT_TOPIC + "/values",
+        device=device,
+        value_template="{{ value_json.battery }}"
+    )
+    sensor.publish(mqttclient,MQTT_QOS)
     
-    data = {}
-    data["device"] = DEVICE
-    data["name"] = "Photovoltaik 1"
-    data["unique_id"] = MQTT_TOPIC + "_pv1"
-    data["device_class"] = "energy"
-    data["state_class"] = "measurement"
-    data["unit_of_measurement"] = "kWh"
-    data["state_topic"] = MQTT_TOPIC + "/values"
-    data["icon"] = "mdi:solar-power"
-    data["value_template"] = "{{ value_json.pv1 }}"
-    mqttclient.publish("homeassistant/sensor/" + MQTT_TOPIC + "/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS, retain=True)
+    sensor = HASensorEnergy(
+        node_id=MQTT_TOPIC,
+        unique_id=MQTT_TOPIC + "_pv1",
+        name="Photovoltaik 1",
+        state_topic=MQTT_TOPIC + "/values",
+        device=device,
+        icon="mdi:solar-power",
+        value_template="{{ value_json.pv1 }}"
+    )
+    sensor.publish(mqttclient,MQTT_QOS)
+    
+    sensor = HASensorEnergy(
+        node_id=MQTT_TOPIC,
+        unique_id=MQTT_TOPIC + "_pv2",
+        name="Photovoltaik 2",
+        state_topic=MQTT_TOPIC + "/values",
+        device=device,
+        icon="mdi:solar-power",
+        value_template="{{ value_json.pv2 }}"
+    )
+    sensor.publish(mqttclient,MQTT_QOS)
 
-    #overide some values and republish
-    data["name"] = "Photovoltaik 2"
-    data["unique_id"] = MQTT_TOPIC + "_pv2"
-    data["value_template"] = "{{ value_json.pv2 }}"
-    mqttclient.publish("homeassistant/sensor/" + MQTT_TOPIC + "/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS, retain=True)
+    sensor = HASensorEnergy(
+        node_id=MQTT_TOPIC,
+        unique_id=MQTT_TOPIC + "_demand_grid",
+        name="Entnahme vom Netz",
+        state_topic=MQTT_TOPIC + "/values",
+        device=device,
+        value_template="{{ value_json.demandgrid }}"
+    )
+    sensor.publish(mqttclient,MQTT_QOS)
 
-    data = {}
-    data["device"] = DEVICE
-    data["name"] = "Entnahme vom Netz"
-    data["unique_id"] = MQTT_TOPIC + "_demand_grid"
-    data["device_class"] = "energy"
-    data["state_class"] = "measurement"
-    data["unit_of_measurement"] = "kWh"
-    data["state_topic"] = MQTT_TOPIC + "/values"
-    data["value_template"] = "{{ value_json.demandgrid }}"
-    mqttclient.publish("homeassistant/sensor/" + MQTT_TOPIC + "/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS, retain=True)
+    sensor = HASensorEnergy(
+        node_id=MQTT_TOPIC,
+        unique_id=MQTT_TOPIC + "_feedin_grid",
+        name="Einspeisung ins Netz",
+        state_topic=MQTT_TOPIC + "/values",
+        device=device,
+        value_template="{{ value_json.feedingrid }}"
+    )
+    sensor.publish(mqttclient,MQTT_QOS)
 
-    #overide some values and republish
-    data["name"] = "Einspeisung ins Netz"
-    data["unique_id"] = MQTT_TOPIC + "_feedin_grid"
-    data["value_template"] = "{{ value_json.feedingrid }}"
-    mqttclient.publish("homeassistant/sensor/" + MQTT_TOPIC + "/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS, retain=True)
+    sensor = HASensorEnergy(
+        node_id=MQTT_TOPIC,
+        unique_id=MQTT_TOPIC + "_consumption",
+        name="Hausverbrauch",
+        state_topic=MQTT_TOPIC + "/values",
+        device=device,
+        value_template="{{ value_json.consumption }}"
+    )
+    sensor.publish(mqttclient,MQTT_QOS)
 
-    #overide some values and republish
-    data["name"] = "Hausverbrauch"
-    data["unique_id"] = MQTT_TOPIC + "_consumption"
-    data["value_template"] = "{{ value_json.consumption }}"
-    mqttclient.publish("homeassistant/sensor/" + MQTT_TOPIC + "/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS, retain=True)
-   
-    #overide some values and republish
-    data["name"] = "Entnahme aus Batterie"
-    data["unique_id"] = MQTT_TOPIC + "_demand_battery"
-    data["value_template"] = "{{ value_json.demandbattery }}"
-    mqttclient.publish("homeassistant/sensor/" + MQTT_TOPIC + "/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS, retain=True)
+    sensor = HASensorEnergy(
+        node_id=MQTT_TOPIC,
+        unique_id=MQTT_TOPIC + "_demand_battery",
+        name="Entnahme aus Batterie",
+        state_topic=MQTT_TOPIC + "/values",
+        device=device,
+        value_template="{{ value_json.demandbattery }}"
+    )
+    sensor.publish(mqttclient,MQTT_QOS)
 
-    #overide some values and republish
-    data["name"] = "Einspeisung in Batterie"
-    data["unique_id"] = MQTT_TOPIC + "_feedin_battery"
-    data["value_template"] = "{{ value_json.feedinbattery }}"
-    mqttclient.publish("homeassistant/sensor/" + MQTT_TOPIC + "/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS, retain=True)
+    sensor = HASensorEnergy(
+        node_id=MQTT_TOPIC,
+        unique_id=MQTT_TOPIC + "_feedin_battery",
+        name="Einspeisung in Batterie",
+        state_topic=MQTT_TOPIC + "/values",
+        device=device,
+        value_template="{{ value_json.feedinbattery }}"
+    )
+    sensor.publish(mqttclient,MQTT_QOS)
 
-    data = {}
-    data["device"] = DEVICE
-    data["name"] = "Temperatur"
-    data["unique_id"] = MQTT_TOPIC + "_temperature"
-    data["device_class"] = "temperature"
-    data["state_class"] = "measurement"
-    data["unit_of_measurement"] = "°C"
-    data["state_topic"] = MQTT_TOPIC + "/values"
-    data["value_template"] = "{{ value_json.temperature }}"
-    mqttclient.publish("homeassistant/sensor/" + MQTT_TOPIC + "/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS, retain=True)
-
+    sensor = HASensorTemperature(
+        node_id=MQTT_TOPIC,
+        unique_id=MQTT_TOPIC + "_temperature",
+        name="Temperatur",
+        state_topic=MQTT_TOPIC + "/values",
+        device=device,
+        value_template="{{ value_json.temperature }}"
+    )
+    sensor.publish(mqttclient,MQTT_QOS)
+    
     #Errorstate
-    data = {}
-    data["device"] = DEVICE
-    data["name"] = "Fehler"
-    data["unique_id"] = MQTT_TOPIC + "_error"
-    data["device_class"] = "problem"
-    data["state_topic"] = MQTT_TOPIC + "/errors"
-    data["value_template"] = "{{ value_json.state }}"
-    mqttclient.publish("homeassistant/binary_sensor/" + MQTT_TOPIC + "/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS, retain=True)
+    sensor = HABinarySensor(
+        node_id=MQTT_TOPIC,
+        unique_id=MQTT_TOPIC + "_error",
+        name="Fehler",
+        state_topic=MQTT_TOPIC + "/errors",
+        device=device,
+        device_class=HADeviceClassBinarySensor.PROBLEM,
+        value_template="{{ value_json.state }}"
+    )
+    sensor.publish(mqttclient,MQTT_QOS)
 
-    data = {}
-    data["device"] = DEVICE
-    data["name"] = "Fehlercode"
-    data["unique_id"] = MQTT_TOPIC + "_errorcode"
-    data["state_topic"] = MQTT_TOPIC + "/errors"
-    data["value_template"] = "{{ value_json.code }}"
-    mqttclient.publish("homeassistant/sensor/" + MQTT_TOPIC + "/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS, retain=True)
+    sensor = HASensor(
+        node_id=MQTT_TOPIC,
+        unique_id=MQTT_TOPIC + "_errorcode",
+        name="Fehlercode",
+        state_topic=MQTT_TOPIC + "/errors",
+        device=device,
+        value_template="{{ value_json.code }}"
+    )
+    sensor.publish(mqttclient,MQTT_QOS)
 
-    #overide some values and republish
-    data["name"] = "Fehlerkategorie"
-    data["unique_id"] = MQTT_TOPIC + "_errorcategory"
-    data["value_template"] = "{{ value_json.category }}"
-    mqttclient.publish("homeassistant/sensor/" + MQTT_TOPIC + "/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS, retain=True)
+    sensor = HASensor(
+        node_id=MQTT_TOPIC,
+        unique_id=MQTT_TOPIC + "_errorcategory",
+        name="Fehlerkategorie",
+        state_topic=MQTT_TOPIC + "/errors",
+        device=device,
+        value_template="{{ value_json.category }}"
+    )
+    sensor.publish(mqttclient,MQTT_QOS)
 
-    #overide some values and republish
-    data["name"] = "Fehlertitel"
-    data["unique_id"] = MQTT_TOPIC + "_errortitle"
-    data["value_template"] = "{{ value_json.title }}"
-    mqttclient.publish("homeassistant/sensor/" + MQTT_TOPIC + "/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS, retain=True)
+    sensor = HASensor(
+        node_id=MQTT_TOPIC,
+        unique_id=MQTT_TOPIC + "_errortitle",
+        name="Fehlertitel",
+        state_topic=MQTT_TOPIC + "/errors",
+        device=device,
+        value_template="{{ value_json.title }}"
+    )
+    sensor.publish(mqttclient,MQTT_QOS)
 
-    #overide some values and republish
-    data["name"] = "Fehleraktion"
-    data["unique_id"] = MQTT_TOPIC + "_erroraction"
-    data["value_template"] = "{{ value_json.action }}"
-    mqttclient.publish("homeassistant/sensor/" + MQTT_TOPIC + "/" + data["unique_id"] + "/config", json.dumps(data), qos=MQTT_QOS, retain=True)
+    sensor = HASensor(
+        node_id=MQTT_TOPIC,
+        unique_id=MQTT_TOPIC + "_erroraction",
+        name="Fehleraktion",
+        state_topic=MQTT_TOPIC + "/errors",
+        device=device,
+        value_template="{{ value_json.action }}"
+    )
+    sensor.publish(mqttclient,MQTT_QOS)
 
 def pushMqttStats(mqttclient, logdate, battery, pv1, pv2, demandgrid, feedingrid, consumption, temp, feedinbattery, demandbattery, err):  
     data = {}
@@ -354,7 +397,7 @@ def mqttOnConnect(client, userdata, flags, rc):
     if rc==0:
         logging.info('MQTT connected')
         client.connected_flag = True
-        pushMqttConfig(client)
+        pushMqttConfig(client, HADEVICE)
     else:
         logging.info("Bad connection Returned code=",rc)
     

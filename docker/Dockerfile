@@ -18,11 +18,11 @@ ENV TZ=Europe/Berlin
 
 WORKDIR /usr/src/app
 
-COPY requirements.txt ./
+COPY docker/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY argparser.sh .
-COPY ../aio-mqtt.py .
-COPY ../errorcodes.py .
+COPY docker/argparser.sh .
+COPY aio-mqtt.py .
+COPY errorcodes.py .
 
 CMD ["./argparser.sh"]

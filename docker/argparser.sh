@@ -54,4 +54,4 @@ if [ -n "$MQTT_QOS" ]; then
   MY_ARGS="$MY_ARGS --mqtt_qos $MQTT_QOS"
 fi
 
-exec ./aio-mqtt.py $MY_ARGS
+exec python3 aio-mqtt.py $MY_ARGS
